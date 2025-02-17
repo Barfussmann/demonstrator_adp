@@ -1,5 +1,6 @@
 use crate::{X_NUM_MODULES, Y_NUM_MODULES};
 
+#[allow(non_camel_case_types)]
 enum ShortModuleType {
     lk,
     la,
