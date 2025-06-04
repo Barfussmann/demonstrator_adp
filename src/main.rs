@@ -1,34 +1,21 @@
 #![allow(clippy::needless_range_loop, unused)]
-use std::{
-    collections::VecDeque,
-    time::{Duration, Instant},
-};
+
+use std::{collections::VecDeque, time::Duration};
 
 use board::{Board, color_to_vec3};
+use constants::*;
 use ligth_point::LigthPoint;
 use macroquad::prelude::*;
 use module::ModuleType;
 use product::{Product, Step};
-
-// const MOUDLES =
-
-const X_NUM_MODULES: usize = 10;
-const Y_NUM_MODULES: usize = 10;
-const DRAW_SCALE: f32 = 1.0;
-const PIXEL_PER_MODULE: f32 = DRAW_SCALE * 100.;
-const LEDS_PER_DIR: usize = 14;
-const STEP_SIZE: f32 = 0.1;
-const COLOR_RADIUS: f32 = 0.1;
-const EPSILON: f32 = 1e-4;
-
-const LED_OFF_COLOR: Vec3 = Vec3::new(0.0, 0.0, 0.0);
-
-const PIKTOGRAM_PATH: &str = "./assets/demonstrator_piktogramme.png";
+use time_manager::TimeManager;
 
 mod board;
+mod constants;
 mod ligth_point;
 mod module;
 mod product;
+mod time_manager;
 
 // Material Fluesse Programmieren
 //
@@ -65,8 +52,20 @@ async fn main() {
         Step::new(0.5, vec![ivec2(9, 5)]),
     ]);
     let mut products: Vec<Product> = Vec::new();
-    let mut last_product = Instant::now();
+
+    // Initialize the time manager
+    let mut time_manager = TimeManager::new();
+
+    let mut last_product = time_manager.now();
+    // let mut product_spawn_timer =
+    //     time_manager.create_repeating_timer(VirtualTime::from_millis(1000));
     loop {
+        // Update the time manager
+        time_manager.update();
+
+        // Handle keyboard input for time control
+        handle_time_controls(&mut time_manager);
+
         clear_background(BLACK);
 
         let params = DrawTextureParams {
@@ -82,20 +81,105 @@ async fn main() {
         board.reset(LED_OFF_COLOR);
 
         products.retain_mut(|product| {
-            let Some(ligth_point_pos) = product.next(&mut board) else {
+            let Some(ligth_point_pos) = product.next(&mut board, &time_manager) else {
                 return false;
             };
             board.draw_ligth_point(ligth_point_pos, color_to_vec3(product.color));
             true
         });
-        if last_product.elapsed() > Duration::from_millis(1000) {
-            products.push(Product::new(RED, steps_red.clone(), &board));
-            products.push(Product::new(GREEN, steps_green.clone(), &board));
-            last_product = Instant::now();
+
+        // Check if it's time to spawn new products using virtual time
+        if last_product + Duration::from_millis(1000) > time_manager.now() {
+            // products.push(Product::new(RED, steps_red.clone(), &board, &time_manager));
+            products.push(Product::new(
+                GREEN,
+                steps_green.clone(),
+                &board,
+                &time_manager,
+            ));
+            last_product = time_manager.now();
         }
 
         board.draw();
 
+        // Draw speed indicator
+        draw_speed_indicator(&time_manager, vec2(10.0, 700.0));
+
         next_frame().await
+    }
+}
+
+/// Handle keyboard input for time control
+fn handle_time_controls(time_manager: &mut TimeManager) {
+    // Speed controls
+    if is_key_pressed(KeyCode::Key1) {
+        time_manager.set_speed(0.25); // Quarter speed
+    }
+    if is_key_pressed(KeyCode::Key2) {
+        time_manager.set_speed(0.5); // Half speed
+    }
+    if is_key_pressed(KeyCode::Key3) {
+        time_manager.set_speed(1.0); // Normal speed
+    }
+    if is_key_pressed(KeyCode::Key4) {
+        time_manager.set_speed(2.0); // Double speed
+    }
+    if is_key_pressed(KeyCode::Key5) {
+        time_manager.set_speed(4.0); // Quadruple speed
+    }
+    if is_key_pressed(KeyCode::Key6) {
+        time_manager.set_speed(8.0); // 8x speed
+    }
+
+    // Fine speed adjustment
+    if is_key_pressed(KeyCode::Up) {
+        let current_speed = time_manager.speed();
+        time_manager.set_speed((current_speed * 1.25).min(10.0));
+    }
+    if is_key_pressed(KeyCode::Down) {
+        let current_speed = time_manager.speed();
+        time_manager.set_speed((current_speed * 0.8).max(0.1));
+    }
+}
+
+/// Draw speed indicator and controls help
+fn draw_speed_indicator(time_manager: &TimeManager, position: Vec2) {
+    let speed = time_manager.speed();
+    // Status display
+    draw_text(
+        &format!("Speed: {speed:.2}x"),
+        position.x,
+        position.y,
+        24.0,
+        GREEN,
+    );
+
+    // Virtual time display (formatted)
+    let virtual_time_text = format!("Virtual Time: {}", time_manager.format_time());
+    draw_text(
+        &virtual_time_text,
+        position.x,
+        position.y + 25.0,
+        20.0,
+        LIGHTGRAY,
+    );
+
+    // Controls help
+    let help_text = &[
+        "Controls:",
+        "1-6: Set speed (0.25x - 8x)",
+        "↑/↓: Fine adjust speed",
+        "Space: Pause/Resume",
+        "R: Reset time",
+    ];
+
+    for (i, line) in help_text.iter().enumerate() {
+        draw_text(
+            line,
+            position.x,
+            position.y + 60.0 + i as f32 * 18.0,
+            16.0,
+            GRAY,
+        );
     }
 }

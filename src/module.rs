@@ -1,6 +1,6 @@
-use crate::{X_NUM_MODULES, Y_NUM_MODULES};
+use crate::constants::{X_NUM_MODULES, Y_NUM_MODULES};
 
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, dead_code)]
 #[derive(Debug, Clone, Copy)]
 enum ShortModuleType {
     lk,

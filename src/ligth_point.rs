@@ -1,8 +1,12 @@
 use std::collections::VecDeque;
 
-use macroquad::math::{IVec2, Vec2, Vec3, vec2};
+use macroquad::math::{IVec2, Vec2};
 
-use crate::{EPSILON, STEP_SIZE, board::Board};
+use crate::{
+    board::Board,
+    constants::{EPSILON, STEP_SIZE},
+    time_manager::TimeManager,
+};
 
 const HALVE: Vec2 = Vec2::new(0.5, 0.5);
 #[derive(Clone)]
@@ -10,6 +14,7 @@ pub struct LigthPoint {
     current: Vec2,
     target: Vec2,
     remaining_path: VecDeque<IVec2>,
+    time_manager: TimeManager,
 }
 
 impl Iterator for LigthPoint {
@@ -27,19 +32,19 @@ impl Iterator for LigthPoint {
         } else {
             dir.x = 0.;
         }
-
-        self.current += dir.clamp_length_max(STEP_SIZE);
+        self.current += dir.clamp_length_max(STEP_SIZE * self.time_manager.last_virtual_delta());
 
         Some(self.current)
     }
 }
 
 impl LigthPoint {
-    pub fn new(mut path: VecDeque<IVec2>) -> Self {
+    pub fn new(mut path: VecDeque<IVec2>, time_manager: TimeManager) -> Self {
         Self {
             current: path.pop_front().unwrap().as_vec2() + HALVE,
             target: path.pop_front().unwrap().as_vec2() + HALVE,
             remaining_path: path,
+            time_manager,
         }
     }
     pub fn current(&self) -> Vec2 {

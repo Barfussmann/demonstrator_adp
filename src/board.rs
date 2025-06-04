@@ -4,21 +4,10 @@ use std::collections::VecDeque;
 use std::ops::Index;
 use std::ops::IndexMut;
 
-use ::rand::rng;
-use ::rand::seq::IndexedRandom;
-use ::rand::seq::IteratorRandom;
 use macroquad::prelude::*;
 
-use crate::COLOR_RADIUS;
-use crate::LED_OFF_COLOR;
-use crate::ligth_point::LigthPoint;
-use crate::module::BOARD_MUDLES;
-use crate::module::ModuleType;
-
-use super::LEDS_PER_DIR;
-use super::PIXEL_PER_MODULE;
-use super::X_NUM_MODULES;
-use super::Y_NUM_MODULES;
+use crate::constants::*;
+use crate::module::{BOARD_MUDLES, ModuleType};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Module {
@@ -135,6 +124,12 @@ pub struct Board {
     pub modules: [[Module; X_NUM_MODULES]; Y_NUM_MODULES],
 }
 
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Board {
     pub fn find_path(&self, start: IVec2, target: IVec2) -> VecDeque<IVec2> {
         if start == target {
@@ -162,7 +157,7 @@ impl Board {
                 path.insert(neighbor, current);
 
                 if neighbor == target {
-                    return self.reconstruct_path(start, target, path);
+                    return self.reconstruct_path(target, path);
                 }
             }
             first_step = false;
@@ -170,12 +165,7 @@ impl Board {
         println!("No Path found");
         VecDeque::new()
     }
-    fn reconstruct_path(
-        &self,
-        start: IVec2,
-        target: IVec2,
-        path: HashMap<IVec2, IVec2>,
-    ) -> VecDeque<IVec2> {
+    fn reconstruct_path(&self, target: IVec2, path: HashMap<IVec2, IVec2>) -> VecDeque<IVec2> {
         let mut current = target;
         let mut full_path = VecDeque::from([target]);
         while let Some(&parent) = path.get(&current) {
