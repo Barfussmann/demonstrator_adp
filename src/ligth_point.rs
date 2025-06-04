@@ -1,25 +1,25 @@
-use macroquad::math::{Vec2, Vec3};
+use std::collections::VecDeque;
 
-use crate::{COLOR_RADIUS, EPSILON, STEP_SIZE, board::Board};
+use macroquad::math::{IVec2, Vec2, Vec3, vec2};
 
+use crate::{EPSILON, STEP_SIZE, board::Board};
+
+const HALVE: Vec2 = Vec2::new(0.5, 0.5);
+#[derive(Clone)]
 pub struct LigthPoint {
     current: Vec2,
-    start: Vec2,
     target: Vec2,
+    remaining_path: VecDeque<IVec2>,
 }
 
-impl LigthPoint {
-    pub fn new(start: Vec2, end: Vec2) -> Self {
-        Self {
-            current: start,
-            start,
-            target: end,
-        }
-    }
-    pub fn step(&mut self) {
+impl Iterator for LigthPoint {
+    type Item = Vec2;
+
+    fn next(&mut self) -> Option<Self::Item> {
         let mut dir = self.target - self.current;
+
         if dir.abs_diff_eq(Vec2::ZERO, EPSILON) {
-            return;
+            self.target = self.remaining_path.pop_front()?.as_vec2() + HALVE;
         }
 
         if dir.y.abs() < EPSILON {
@@ -28,22 +28,29 @@ impl LigthPoint {
             dir.x = 0.;
         }
 
-        dir = (dir.normalize() * STEP_SIZE).min(dir);
-        self.current += dir;
+        self.current += dir.clamp_length_max(STEP_SIZE);
 
-        if self.current.abs_diff_eq(self.target, STEP_SIZE) {
-            self.current = self.start;
+        Some(self.current)
+    }
+}
+
+impl LigthPoint {
+    pub fn new(mut path: VecDeque<IVec2>) -> Self {
+        Self {
+            current: path.pop_front().unwrap().as_vec2() + HALVE,
+            target: path.pop_front().unwrap().as_vec2() + HALVE,
+            remaining_path: path,
         }
     }
-    pub fn draw(&self, board: &mut Board, color: Vec3) {
-        for (pos, led) in board.iter_mut_leds() {
-            let coloring_strength = 1. - pos.distance(self.current) / COLOR_RADIUS;
+    pub fn current(&self) -> Vec2 {
+        self.current
+    }
+    pub fn target(&self) -> IVec2 {
+        *self.remaining_path.back().unwrap()
+    }
+    pub fn set_new_target(&mut self, target: IVec2, board: &Board) {
+        self.remaining_path = board.find_path(self.current().as_ivec2(), target);
 
-            if coloring_strength >= 0. {
-                *led += color * coloring_strength;
-            } else {
-                continue;
-            }
-        }
+        self.target = self.remaining_path.pop_front().unwrap().as_vec2() + HALVE;
     }
 }
