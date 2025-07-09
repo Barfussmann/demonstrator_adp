@@ -18,7 +18,6 @@ mod product;
 mod time_manager;
 
 // Material Fluesse Programmieren
-//
 
 #[macroquad::main("Board")]
 async fn main() {
