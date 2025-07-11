@@ -29,27 +29,53 @@ async fn main() {
     let gpu_piktogram = Texture2D::from_image(&piktogram_image);
 
     let steps_red = VecDeque::from([
-        Step::new(0.5, vec![ivec2(0, 0)]),
-        Step::new(0.5, vec![ivec2(2, 0)]),
-        Step::new(2.0, vec![ivec2(3, 0)]),
-        Step::new(2.0, vec![ivec2(4, 0), ivec2(4, 2)]),
-        Step::new(2.0, vec![ivec2(5, 1)]),
-        Step::new(0.5, vec![ivec2(6, 0)]),
-        Step::new(0.5, vec![ivec2(7, 1)]),
-        Step::new(1.5, vec![ivec2(8, 0), ivec2(9, 1), ivec2(9, 2)]),
-        Step::new(2.0, vec![ivec2(8, 3)]),
-        Step::new(0.5, vec![ivec2(9, 5)]),
+        // Step::new(0.5, vec![ivec2(0, 0)]),
+        Step::new(0.5, vec![ivec2(2, 0)], ivec2(3, 0)),
+        // Step::new(2.0, vec![ivec2(3, 0)]),
+        Step::new(2.0, vec![ivec2(4, 0), ivec2(4, 2)], ivec2(5, 1)),
+        // Step::new(2.0, vec![ivec2(5, 1)]),
+        Step::new(0.5, vec![ivec2(6, 0)], ivec2(7, 1)),
+        // Step::new(0.5, vec![ivec2(7, 1)]),
+        Step::new(
+            1.5,
+            vec![ivec2(8, 0), ivec2(9, 1), ivec2(9, 2)],
+            ivec2(8, 3),
+        ),
+        // Step::new(2.0, vec![ivec2(8, 3)]),
+        // Step::new(0.5, vec![ivec2(9, 5)]),
     ]);
     let steps_green = VecDeque::from([
-        Step::new(0.5, vec![ivec2(0, 5)]),
-        Step::new(2.0, vec![ivec2(1, 4)]),
+        Step::new(0.5, vec![ivec2(0, 5)], ivec2(1, 4)),
+        // Step::new(2.0, vec![ivec2(1, 4)]),
         // Step::new(1.0, vec![ivec2(2, 7), ivec2(3, 6)]),
-        Step::new(1.0, vec![ivec2(2, 6), ivec2(3, 6)]),
-        Step::new(2.0, vec![ivec2(4, 4)]),
-        Step::new(0.5, vec![ivec2(5, 6)]),
-        Step::new(2.0, vec![ivec2(7, 6)]),
-        Step::new(0.5, vec![ivec2(9, 5)]),
+        Step::new(1.0, vec![ivec2(2, 6), ivec2(3, 6)], ivec2(4, 4)),
+        // Step::new(2.0, vec![ivec2(4, 4)]),
+        Step::new(0.5, vec![ivec2(5, 6)], ivec2(7, 6)),
+        // Step::new(2.0, vec![ivec2(7, 6)]),
+        // Step::new(0.5, vec![ivec2(9, 5)]),
     ]);
+    // let steps_red = VecDeque::from([
+    //     Step::new(0.5, vec![ivec2(0, 0)]),
+    //     Step::new(0.5, vec![ivec2(2, 0)]),
+    //     Step::new(2.0, vec![ivec2(3, 0)]),
+    //     Step::new(2.0, vec![ivec2(4, 0), ivec2(4, 2)]),
+    //     Step::new(2.0, vec![ivec2(5, 1)]),
+    //     Step::new(0.5, vec![ivec2(6, 0)]),
+    //     Step::new(0.5, vec![ivec2(7, 1)]),
+    //     Step::new(1.5, vec![ivec2(8, 0), ivec2(9, 1), ivec2(9, 2)]),
+    //     Step::new(2.0, vec![ivec2(8, 3)]),
+    //     Step::new(0.5, vec![ivec2(9, 5)]),
+    // ]);
+    // let steps_green = VecDeque::from([
+    //     Step::new(0.5, vec![ivec2(0, 5)]),
+    //     Step::new(2.0, vec![ivec2(1, 4)]),
+    //     // Step::new(1.0, vec![ivec2(2, 7), ivec2(3, 6)]),
+    //     Step::new(1.0, vec![ivec2(2, 6), ivec2(3, 6)]),
+    //     Step::new(2.0, vec![ivec2(4, 4)]),
+    //     Step::new(0.5, vec![ivec2(5, 6)]),
+    //     Step::new(2.0, vec![ivec2(7, 6)]),
+    //     Step::new(0.5, vec![ivec2(9, 5)]),
+    // ]);
     let mut products: Vec<Product> = Vec::new();
 
     // Initialize the time manager
@@ -88,8 +114,7 @@ async fn main() {
         });
 
         // Check if it's time to spawn new products using virtual time
-        if last_product + Duration::from_millis(1000) > time_manager.now() {
-            // products.push(Product::new(RED, steps_red.clone(), &board, &time_manager));
+        if last_product + Duration::from_millis(1000) < time_manager.now() {
             products.push(Product::new(
                 GREEN,
                 steps_green.clone(),
