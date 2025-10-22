@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use macroquad::math::{IVec2, Vec2};
 
 use crate::{
-    board::Board,
     constants::{EPSILON, STEP_SIZE},
     time_manager::TimeManager,
 };
@@ -53,8 +52,8 @@ impl LigthPoint {
     pub fn target(&self) -> IVec2 {
         *self.remaining_path.back().unwrap()
     }
-    pub fn set_new_target(&mut self, target: IVec2, board: &Board) {
-        self.remaining_path = board.find_path(self.current().as_ivec2(), target);
+    pub fn set_new_target(&mut self, path: VecDeque<IVec2>) {
+        self.remaining_path = path;
 
         self.target = self.remaining_path.pop_front().unwrap().as_vec2() + HALVE;
     }

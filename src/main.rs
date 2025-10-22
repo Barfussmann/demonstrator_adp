@@ -6,7 +6,6 @@ use board::{Board, color_to_vec3};
 use constants::*;
 use ligth_point::LigthPoint;
 use macroquad::prelude::*;
-use module::ModuleType;
 use product::{Product, Step};
 use time_manager::TimeManager;
 
@@ -25,62 +24,28 @@ async fn main() {
     let mut board = Board::new();
 
     let piktogram_image = load_image(PIKTOGRAM_PATH).await.unwrap();
-
     let gpu_piktogram = Texture2D::from_image(&piktogram_image);
 
-    let steps_red = VecDeque::from([
-        // Step::new(0.5, vec![ivec2(0, 0)]),
-        Step::new(0.5, vec![ivec2(2, 0)], ivec2(3, 0)),
-        // Step::new(2.0, vec![ivec2(3, 0)]),
-        Step::new(2.0, vec![ivec2(4, 0), ivec2(4, 2)], ivec2(5, 1)),
-        // Step::new(2.0, vec![ivec2(5, 1)]),
-        Step::new(0.5, vec![ivec2(6, 0)], ivec2(7, 1)),
-        // Step::new(0.5, vec![ivec2(7, 1)]),
-        Step::new(
-            1.5,
-            vec![ivec2(8, 0), ivec2(9, 1), ivec2(9, 2)],
-            ivec2(8, 3),
-        ),
-        // Step::new(2.0, vec![ivec2(8, 3)]),
-        // Step::new(0.5, vec![ivec2(9, 5)]),
+    let steps_top = VecDeque::from([
+        Step::new(0.0, ivec2(1, 0), vec![ivec2(0, 0)]),
+        Step::new(1.0, ivec2(2, 1), vec![ivec2(1, 1)]),
+        Step::new(0.0, ivec2(3, 0), vec![ivec2(2, 0)]),
+        Step::new(1.0, ivec2(4, 1), vec![ivec2(3, 1)]),
+        Step::new(1.0, ivec2(5, 0), vec![ivec2(4, 0)]),
+        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 1)]),
     ]);
-    let steps_green = VecDeque::from([
-        Step::new(0.5, vec![ivec2(0, 5)], ivec2(1, 4)),
-        // Step::new(2.0, vec![ivec2(1, 4)]),
-        // Step::new(1.0, vec![ivec2(2, 7), ivec2(3, 6)]),
-        Step::new(1.0, vec![ivec2(2, 6), ivec2(3, 6)], ivec2(4, 4)),
-        // Step::new(2.0, vec![ivec2(4, 4)]),
-        Step::new(0.5, vec![ivec2(5, 6)], ivec2(7, 6)),
-        // Step::new(2.0, vec![ivec2(7, 6)]),
-        // Step::new(0.5, vec![ivec2(9, 5)]),
+    let steps_bottom = VecDeque::from([
+        Step::new(0.0, ivec2(1, 3), vec![ivec2(0, 3)]),
+        Step::new(1.0, ivec2(2, 3), vec![ivec2(1, 2), ivec2(2, 2)]),
+        Step::new(1.0, ivec2(3, 3), vec![ivec2(2, 2), ivec2(3, 2)]),
+        Step::new(0.0, ivec2(4, 3), vec![ivec2(3, 2), ivec2(4, 2)]),
+        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 3)]),
     ]);
-    // let steps_red = VecDeque::from([
-    //     Step::new(0.5, vec![ivec2(0, 0)]),
-    //     Step::new(0.5, vec![ivec2(2, 0)]),
-    //     Step::new(2.0, vec![ivec2(3, 0)]),
-    //     Step::new(2.0, vec![ivec2(4, 0), ivec2(4, 2)]),
-    //     Step::new(2.0, vec![ivec2(5, 1)]),
-    //     Step::new(0.5, vec![ivec2(6, 0)]),
-    //     Step::new(0.5, vec![ivec2(7, 1)]),
-    //     Step::new(1.5, vec![ivec2(8, 0), ivec2(9, 1), ivec2(9, 2)]),
-    //     Step::new(2.0, vec![ivec2(8, 3)]),
-    //     Step::new(0.5, vec![ivec2(9, 5)]),
-    // ]);
-    // let steps_green = VecDeque::from([
-    //     Step::new(0.5, vec![ivec2(0, 5)]),
-    //     Step::new(2.0, vec![ivec2(1, 4)]),
-    //     // Step::new(1.0, vec![ivec2(2, 7), ivec2(3, 6)]),
-    //     Step::new(1.0, vec![ivec2(2, 6), ivec2(3, 6)]),
-    //     Step::new(2.0, vec![ivec2(4, 4)]),
-    //     Step::new(0.5, vec![ivec2(5, 6)]),
-    //     Step::new(2.0, vec![ivec2(7, 6)]),
-    //     Step::new(0.5, vec![ivec2(9, 5)]),
-    // ]);
-    let mut products: Vec<Product> = Vec::new();
 
     // Initialize the time manager
     let mut time_manager = TimeManager::new();
 
+    let mut products = Vec::new();
     let mut last_product = time_manager.now();
     // let mut product_spawn_timer =
     //     time_manager.create_repeating_timer(VirtualTime::from_millis(1000));
@@ -105,7 +70,7 @@ async fn main() {
 
         board.reset(LED_OFF_COLOR);
 
-        products.retain_mut(|product| {
+        products.retain_mut(|product: &mut Product| {
             let Some(ligth_point_pos) = product.next(&mut board, &time_manager) else {
                 return false;
             };
@@ -115,12 +80,7 @@ async fn main() {
 
         // Check if it's time to spawn new products using virtual time
         if last_product + Duration::from_millis(1000) < time_manager.now() {
-            products.push(Product::new(
-                GREEN,
-                steps_green.clone(),
-                &board,
-                &time_manager,
-            ));
+            products.push(Product::new(GREEN, steps_top.clone(), &time_manager));
             last_product = time_manager.now();
         }
 
