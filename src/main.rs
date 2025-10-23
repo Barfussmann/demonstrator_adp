@@ -1,10 +1,16 @@
 #![allow(clippy::needless_range_loop, unused)]
 
-use std::{collections::VecDeque, time::Duration};
+use std::{
+    collections::VecDeque,
+    time::{Duration, Instant},
+};
 
+#[cfg(not(target_arch = "x86_64"))]
+use blinkt::{Blinkt, BlinktSpi};
 use board::{Board, color_to_vec3};
 use constants::*;
 use ligth_point::LigthPoint;
+#[cfg(target_arch = "x86_64")]
 use macroquad::prelude::*;
 use product::{Product, Step};
 use time_manager::TimeManager;
@@ -20,11 +26,21 @@ mod time_manager;
 
 #[macroquad::main("Board")]
 async fn main() {
+    #[cfg(target_arch = "x86_64")]
     board::Board::set_screen_size();
     let mut board = Board::new();
 
-    let piktogram_image = load_image(PIKTOGRAM_PATH).await.unwrap();
-    let gpu_piktogram = Texture2D::from_image(&piktogram_image);
+    #[cfg(not(target_arch = "x86_64"))]
+    let mut blinkt = Blinkt::with_spi(
+        BlinktSpi::with_settings(
+            blinkt::spi::Bus::Spi1,
+            blinkt::spi::SlaveSelect::Ss1,
+            1_000_000,
+            blinkt::spi::Mode::Mode0,
+        )
+        .unwrap(),
+        X_NUM_MODULES * Y_NUM_MODULES * (7 + 6),
+    );
 
     let steps_top = VecDeque::from([
         Step::new(1.0, ivec2(0, 1), vec![ivec2(0, 1)], false),
@@ -54,13 +70,16 @@ async fn main() {
     // let mut product_spawn_timer =
     //     time_manager.create_repeating_timer(VirtualTime::from_millis(1000));
     loop {
+        let start_time = Instant::now();
         // Update the time manager
         time_manager.update();
 
-        // Handle keyboard input for time control
-        handle_time_controls(&mut time_manager);
-
-        clear_background(GRAY);
+        #[cfg(target_arch = "x86_64")]
+        {
+            // Handle keyboard input for time control
+            handle_time_controls(&mut time_manager);
+            clear_background(GRAY);
+        }
 
         board.reset(LED_OFF_COLOR);
 
@@ -80,15 +99,29 @@ async fn main() {
             last_product = time_manager.now();
         }
 
-        board.draw();
+        #[cfg(not(target_arch = "x86_64"))]
+        for (pixel, mut color) in blinkt.iter_mut().zip(board.colors()) {
+            color *= 255.0;
+            color = color.clamp(Vec3::splat(0.0), Vec3::splat(255.0));
+            pixel.set_rgbb(color.x as u8, color.y as u8, color.z as u8, 0.1);
+        }
 
-        // Draw speed indicator
-        draw_speed_indicator(&time_manager, vec2(10.0, 700.0));
+        #[cfg(target_arch = "x86_64")]
+        {
+            board.draw();
+            // Draw speed indicator
+            draw_speed_indicator(&time_manager, vec2(10.0, 700.0));
+            next_frame().await
+        }
 
-        next_frame().await
+        #[cfg(not(target_arch = "x86_64"))]
+        std::thread::sleep(
+            (start_time + Duration::from_secs(1) / 100).saturating_duration_since(Instant::now()),
+        );
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 /// Handle keyboard input for time control
 fn handle_time_controls(time_manager: &mut TimeManager) {
     // Speed controls
@@ -122,6 +155,7 @@ fn handle_time_controls(time_manager: &mut TimeManager) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 /// Draw speed indicator and controls help
 fn draw_speed_indicator(time_manager: &TimeManager, position: Vec2) {
     let speed = time_manager.speed();

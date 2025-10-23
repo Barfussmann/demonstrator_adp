@@ -29,6 +29,16 @@ impl Module {
             brigthness_y: [color; LEDS_PER_DIR],
         }
     }
+    pub fn colors(&self, flip: bool) -> Vec<Vec3> {
+        let mut pixel_x = self.brigthness_x[0..3].to_vec();
+        pixel_x.extend_from_slice(&self.brigthness_x[4..7]);
+        let mut pixel_y = self.brigthness_y.to_vec();
+        if flip {
+            pixel_x.reverse();
+            pixel_y.reverse();
+        }
+        pixel_x.into_iter().chain(pixel_y).collect()
+    }
     pub fn corner(&self) -> Vec2 {
         self.pos.as_vec2() * PIXEL_PER_MODULE
     }
@@ -120,12 +130,11 @@ impl Default for Board {
 }
 
 impl Board {
-    fn neighbors(&self, pos: IVec2) -> Vec<IVec2> {
-        const OFFSETS: [IVec2; 4] = [ivec2(-1, 0), ivec2(1, 0), ivec2(0, -1), ivec2(0, 1)];
-        OFFSETS
-            .map(|offset| pos + offset)
-            .into_iter()
-            .filter(|neighbor| self.inbounds(*neighbor))
+    pub fn colors(&self) -> Vec<Vec3> {
+        self.modules
+            .iter()
+            .enumerate()
+            .flat_map(|(y, row)| row.iter().flat_map(move |module| module.colors(y % 2 == 1)))
             .collect()
     }
     pub fn set_storage(&mut self, steps: VecDeque<Step>) {
@@ -151,6 +160,7 @@ impl Board {
             .iter_mut()
             .flat_map(|module| module.iter_mut_leds())
     }
+    #[cfg(target_arch = "x86_64")]
     pub fn set_screen_size() {
         request_new_screen_size(
             X_NUM_MODULES as f32 * PIXEL_PER_MODULE,

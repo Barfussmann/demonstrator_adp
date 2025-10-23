@@ -1,10 +1,8 @@
 use std::{
     ops::{Add, AddAssign},
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-
-use parking_lot::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VirtualInstant {
@@ -70,18 +68,18 @@ impl TimeManager {
 
     /// Get the current virtual time
     pub fn now(&self) -> VirtualInstant {
-        self.inner.lock().virtual_instance
+        self.inner.lock().unwrap().virtual_instance
     }
 
     /// Get the last virtual delta time in seconds
     pub fn last_virtual_delta(&self) -> f32 {
-        self.inner.lock().last_virtual_delta.as_secs_f32()
+        self.inner.lock().unwrap().last_virtual_delta.as_secs_f32()
     }
 
     /// Update the virtual time based on real time and current settings
     /// This should be called once per frame
     pub fn update(&mut self) {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().unwrap();
         let now = Instant::now();
 
         let real_delta = now.duration_since(inner.last_update);
@@ -98,17 +96,17 @@ impl TimeManager {
     /// - 2.0 = double speed
     /// - 0.5 = half speed
     pub fn set_speed(&mut self, multiplier: f64) {
-        self.inner.lock().speed_multiplier = multiplier.max(0.0);
+        self.inner.lock().unwrap().speed_multiplier = multiplier.max(0.0);
     }
 
     /// Get the current speed multiplier
     pub fn speed(&self) -> f64 {
-        self.inner.lock().speed_multiplier
+        self.inner.lock().unwrap().speed_multiplier
     }
 
     /// Reset the time manager to initial state
     pub fn reset(&mut self) {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().unwrap();
         let now = Instant::now();
         inner.start_real_time = now;
         inner.virtual_instance = VirtualInstant::zero();
@@ -117,7 +115,13 @@ impl TimeManager {
 
     /// Get the virtual time as a formatted string (MM:SS.mmm)
     pub fn format_time(&self) -> String {
-        let total_secs = self.inner.lock().virtual_instance.elapsed.as_secs_f64();
+        let total_secs = self
+            .inner
+            .lock()
+            .unwrap()
+            .virtual_instance
+            .elapsed
+            .as_secs_f64();
         let minutes = (total_secs / 60.0) as u32;
         let seconds = total_secs % 60.0;
         format!("{minutes:02}:{seconds:06.3}")
