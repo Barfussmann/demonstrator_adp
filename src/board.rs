@@ -1,14 +1,20 @@
+use std::array::from_fn;
+use std::collections::VecDeque;
 use std::ops::Index;
 use std::ops::IndexMut;
 
 use macroquad::prelude::*;
 
 use crate::constants::*;
+use crate::product::Step;
+
+pub const MAX_PRODUCT_IN_STORAGE: u32 = 5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Module {
     pub pos: IVec2,
     pub in_production: u32,
+    pub max_production: u32,
     pub brigthness_x: [Vec3; LEDS_PER_DIR],
     pub brigthness_y: [Vec3; LEDS_PER_DIR],
 }
@@ -18,6 +24,7 @@ impl Module {
         Self {
             pos,
             in_production: 0,
+            max_production: 1,
             brigthness_x: [color; LEDS_PER_DIR],
             brigthness_y: [color; LEDS_PER_DIR],
         }
@@ -79,7 +86,7 @@ impl Module {
     }
 
     pub fn is_full(&self) -> bool {
-        self.in_production > 0
+        self.in_production >= self.max_production
     }
 }
 fn vec3_to_color(color: Vec3, alpha: f32) -> Color {
@@ -121,12 +128,21 @@ impl Board {
             .filter(|neighbor| self.inbounds(*neighbor))
             .collect()
     }
+    pub fn set_storage(&mut self, steps: VecDeque<Step>) {
+        for step in &steps {
+            if step.is_storage() {
+                self[step.maschine_pos()].max_production = MAX_PRODUCT_IN_STORAGE;
+            }
+        }
+    }
     pub fn inbounds(&self, pos: IVec2) -> bool {
         pos.x >= 0 && pos.y >= 0 && pos.x < X_NUM_MODULES as i32 && pos.y < Y_NUM_MODULES as i32
     }
     pub fn new() -> Self {
         Self {
-            modules: [[Module::new(IVec2::ZERO, LED_OFF_COLOR); X_NUM_MODULES]; Y_NUM_MODULES],
+            modules: from_fn(|y| {
+                from_fn(|x| Module::new(ivec2(x as i32, y as i32), LED_OFF_COLOR))
+            }),
         }
     }
     pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = (Vec2, &mut Vec3)> {

@@ -1,8 +1,4 @@
-use std::{
-    collections::VecDeque,
-    hash::{DefaultHasher, Hash, Hasher},
-    time::Duration,
-};
+use std::{collections::VecDeque, hash::Hash, time::Duration};
 
 use crate::{
     board::Board,
@@ -14,31 +10,33 @@ use macroquad::{
     math::{IVec2, Vec2},
 };
 
-struct Maschine {
-    possible_products: Vec<ProductHash>,
-    possible_input_warehouses: Vec<IVec2>,
-}
-
 #[derive(Clone, Hash)]
 pub struct Step {
     path: Vec<IVec2>,
     maschine_pos: IVec2,
     production_time: Duration,
-    can_wait: bool,
+    is_storage: bool,
 }
 impl Step {
-    pub fn new(time_in_seconds: f32, maschine_pos: IVec2, path: Vec<IVec2>) -> Self {
+    pub fn new(time_in_seconds: f32, maschine_pos: IVec2, path: Vec<IVec2>, storage: bool) -> Self {
         Self {
             path,
             maschine_pos,
             production_time: Duration::from_secs_f32(time_in_seconds),
-            can_wait: time_in_seconds == 0.0,
+            is_storage: storage,
         }
     }
     fn path(&self) -> VecDeque<IVec2> {
         let mut path = VecDeque::from(self.path.clone());
         path.push_back(self.maschine_pos);
         path
+    }
+
+    pub fn is_storage(&self) -> bool {
+        self.is_storage
+    }
+    pub fn maschine_pos(&self) -> IVec2 {
+        self.maschine_pos
     }
 }
 
@@ -57,11 +55,6 @@ enum State {
     },
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-struct ProductHash {
-    hash: u64,
-}
-
 pub struct Product {
     remaining_steps: VecDeque<Step>,
     ligth_point: LigthPoint,
@@ -69,7 +62,12 @@ pub struct Product {
     state: State,
 }
 impl Product {
-    pub fn new(color: Color, mut steps: VecDeque<Step>, time_manager: &TimeManager) -> Self {
+    pub fn new(
+        color: Color,
+        // start: Vec2,
+        mut steps: VecDeque<Step>,
+        time_manager: &TimeManager,
+    ) -> Self {
         assert!(steps.len() >= 2, "Fertigungsauftag needs atleast 2 steps");
         let step = steps.pop_front().unwrap();
 
@@ -85,6 +83,9 @@ impl Product {
             ligth_point,
             color,
         }
+    }
+    pub fn finish(&self, board: &mut Board) {
+        board[self.ligth_point.current().as_ivec2()].in_production -= 1;
     }
     fn waiting_in_storage(&self) -> Vec2 {
         self.ligth_point.current()

@@ -27,20 +27,24 @@ async fn main() {
     let gpu_piktogram = Texture2D::from_image(&piktogram_image);
 
     let steps_top = VecDeque::from([
-        Step::new(0.0, ivec2(1, 0), vec![ivec2(0, 0)]),
-        Step::new(1.0, ivec2(2, 1), vec![ivec2(1, 1)]),
-        Step::new(0.0, ivec2(3, 0), vec![ivec2(2, 0)]),
-        Step::new(1.0, ivec2(4, 1), vec![ivec2(3, 1)]),
-        Step::new(1.0, ivec2(5, 0), vec![ivec2(4, 0)]),
-        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 1)]),
+        Step::new(1.0, ivec2(0, 1), vec![ivec2(0, 1)], false),
+        Step::new(1.0, ivec2(1, 0), vec![ivec2(0, 0)], true),
+        Step::new(5.0, ivec2(2, 1), vec![ivec2(1, 1)], false),
+        Step::new(1.0, ivec2(3, 0), vec![ivec2(2, 0)], true),
+        Step::new(5.0, ivec2(4, 1), vec![ivec2(3, 1)], false),
+        Step::new(5.0, ivec2(5, 0), vec![ivec2(4, 0)], false),
+        Step::new(5.0, ivec2(5, 2), vec![ivec2(5, 1)], false),
     ]);
     let steps_bottom = VecDeque::from([
-        Step::new(0.0, ivec2(1, 3), vec![ivec2(0, 3)]),
-        Step::new(1.0, ivec2(2, 3), vec![ivec2(1, 2), ivec2(2, 2)]),
-        Step::new(1.0, ivec2(3, 3), vec![ivec2(2, 2), ivec2(3, 2)]),
-        Step::new(0.0, ivec2(4, 3), vec![ivec2(3, 2), ivec2(4, 2)]),
-        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 3)]),
+        Step::new(0.0, ivec2(0, 2), vec![ivec2(0, 2)], false),
+        Step::new(1.0, ivec2(1, 3), vec![ivec2(0, 3)], true),
+        Step::new(5.0, ivec2(2, 3), vec![ivec2(1, 2), ivec2(2, 2)], false),
+        Step::new(5.0, ivec2(3, 3), vec![ivec2(2, 2), ivec2(3, 2)], false),
+        Step::new(1.0, ivec2(4, 3), vec![ivec2(3, 2), ivec2(4, 2)], true),
+        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 3)], false),
     ]);
+    board.set_storage(steps_bottom.clone());
+    board.set_storage(steps_top.clone());
 
     // Initialize the time manager
     let mut time_manager = TimeManager::new();
@@ -56,22 +60,13 @@ async fn main() {
         // Handle keyboard input for time control
         handle_time_controls(&mut time_manager);
 
-        clear_background(BLACK);
-
-        let params = DrawTextureParams {
-            dest_size: Some(
-                vec2(PIXEL_PER_MODULE, PIXEL_PER_MODULE)
-                    * vec2(X_NUM_MODULES as f32, Y_NUM_MODULES as f32),
-            ),
-            ..Default::default()
-        };
-
-        draw_texture_ex(&gpu_piktogram, 0., 0., WHITE, params);
+        clear_background(GRAY);
 
         board.reset(LED_OFF_COLOR);
 
         products.retain_mut(|product: &mut Product| {
             let Some(ligth_point_pos) = product.next(&mut board, &time_manager) else {
+                product.finish(&mut board);
                 return false;
             };
             board.draw_ligth_point(ligth_point_pos, color_to_vec3(product.color));
@@ -79,8 +74,9 @@ async fn main() {
         });
 
         // Check if it's time to spawn new products using virtual time
-        if last_product + Duration::from_millis(1000) < time_manager.now() {
+        if last_product + Duration::from_millis(3000) < time_manager.now() {
             products.push(Product::new(GREEN, steps_top.clone(), &time_manager));
+            products.push(Product::new(RED, steps_bottom.clone(), &time_manager));
             last_product = time_manager.now();
         }
 
