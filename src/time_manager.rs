@@ -1,5 +1,5 @@
 use std::{
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub},
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -12,7 +12,7 @@ pub struct VirtualInstant {
 impl VirtualInstant {
     fn zero() -> Self {
         Self {
-            elapsed: Duration::ZERO,
+            elapsed: Duration::from_secs(5),
         }
     }
 }
@@ -28,6 +28,15 @@ impl Add<Duration> for VirtualInstant {
 impl AddAssign<Duration> for VirtualInstant {
     fn add_assign(&mut self, rhs: Duration) {
         *self = *self + rhs;
+    }
+}
+impl Sub<Duration> for VirtualInstant {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        Self {
+            elapsed: self.elapsed - rhs,
+        }
     }
 }
 

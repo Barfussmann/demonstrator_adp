@@ -5,20 +5,23 @@ use crate::{
     ligth_point::LigthPoint,
     time_manager::{TimeManager, VirtualInstant},
 };
-use macroquad::{
-    color::Color,
-    math::{IVec2, Vec2},
-};
+#[cfg(target_arch = "x86_64")]
+use macroquad::color::Color;
 
 #[derive(Clone, Hash)]
 pub struct Step {
-    path: Vec<IVec2>,
-    maschine_pos: IVec2,
+    path: Vec<[i32; 2]>,
+    maschine_pos: [i32; 2],
     production_time: Duration,
     is_storage: bool,
 }
 impl Step {
-    pub fn new(time_in_seconds: f32, maschine_pos: IVec2, path: Vec<IVec2>, storage: bool) -> Self {
+    pub fn new(
+        time_in_seconds: f32,
+        maschine_pos: [i32; 2],
+        path: Vec<[i32; 2]>,
+        storage: bool,
+    ) -> Self {
         Self {
             path,
             maschine_pos,
@@ -26,7 +29,7 @@ impl Step {
             is_storage: storage,
         }
     }
-    fn path(&self) -> VecDeque<IVec2> {
+    fn path(&self) -> VecDeque<[i32; 2]> {
         let mut path = VecDeque::from(self.path.clone());
         path.push_back(self.maschine_pos);
         path
@@ -35,7 +38,7 @@ impl Step {
     pub fn is_storage(&self) -> bool {
         self.is_storage
     }
-    pub fn maschine_pos(&self) -> IVec2 {
+    pub fn maschine_pos(&self) -> [i32; 2] {
         self.maschine_pos
     }
 }
@@ -62,12 +65,7 @@ pub struct Product {
     state: State,
 }
 impl Product {
-    pub fn new(
-        color: Color,
-        // start: Vec2,
-        mut steps: VecDeque<Step>,
-        time_manager: &TimeManager,
-    ) -> Self {
+    pub fn new(color: Color, mut steps: VecDeque<Step>, time_manager: &TimeManager) -> Self {
         assert!(steps.len() >= 2, "Fertigungsauftag needs atleast 2 steps");
         let step = steps.pop_front().unwrap();
 
@@ -85,12 +83,12 @@ impl Product {
         }
     }
     pub fn finish(&self, board: &mut Board) {
-        board[self.ligth_point.current().as_ivec2()].in_production -= 1;
+        board[self.ligth_point.current_i32x2()].in_production -= 1;
     }
-    fn waiting_in_storage(&self) -> Vec2 {
+    fn waiting_in_storage(&self) -> [f32; 2] {
         self.ligth_point.current()
     }
-    pub fn next(&mut self, board: &mut Board, time_manager: &TimeManager) -> Option<Vec2> {
+    pub fn next(&mut self, board: &mut Board, time_manager: &TimeManager) -> Option<[f32; 2]> {
         match &self.state {
             State::Waiting { until, next_step } => {
                 if time_manager.now() >= *until {
@@ -104,7 +102,7 @@ impl Product {
                 if board[next_step.maschine_pos].is_full() {
                     return Some(self.waiting_in_storage());
                 };
-                board[self.ligth_point.current().as_ivec2()].in_production -= 1;
+                board[self.ligth_point.current_i32x2()].in_production -= 1;
 
                 self.ligth_point.set_new_target(next_step.path());
                 board[next_step.maschine_pos].in_production += 1;

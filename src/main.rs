@@ -43,21 +43,21 @@ async fn main() {
     );
 
     let steps_top = VecDeque::from([
-        Step::new(1.0, ivec2(0, 1), vec![ivec2(0, 1)], false),
-        Step::new(1.0, ivec2(1, 0), vec![ivec2(0, 0)], true),
-        Step::new(5.0, ivec2(2, 1), vec![ivec2(1, 1)], false),
-        Step::new(1.0, ivec2(3, 0), vec![ivec2(2, 0)], true),
-        Step::new(5.0, ivec2(4, 1), vec![ivec2(3, 1)], false),
-        Step::new(5.0, ivec2(5, 0), vec![ivec2(4, 0)], false),
-        Step::new(5.0, ivec2(5, 2), vec![ivec2(5, 1)], false),
+        Step::new(1.0, [0, 1], vec![[0, 1]], false),
+        Step::new(1.0, [1, 0], vec![[0, 0]], true),
+        Step::new(5.0, [2, 1], vec![[1, 1]], false),
+        Step::new(1.0, [3, 0], vec![[2, 0]], true),
+        Step::new(5.0, [4, 1], vec![[3, 1]], false),
+        Step::new(5.0, [5, 0], vec![[4, 0]], false),
+        Step::new(5.0, [5, 2], vec![[5, 1]], false),
     ]);
     let steps_bottom = VecDeque::from([
-        Step::new(0.0, ivec2(0, 2), vec![ivec2(0, 2)], false),
-        Step::new(1.0, ivec2(1, 3), vec![ivec2(0, 3)], true),
-        Step::new(5.0, ivec2(2, 3), vec![ivec2(1, 2), ivec2(2, 2)], false),
-        Step::new(5.0, ivec2(3, 3), vec![ivec2(2, 2), ivec2(3, 2)], false),
-        Step::new(1.0, ivec2(4, 3), vec![ivec2(3, 2), ivec2(4, 2)], true),
-        Step::new(1.0, ivec2(5, 2), vec![ivec2(5, 3)], false),
+        Step::new(0.0, [0, 2], vec![[0, 2]], false),
+        Step::new(1.0, [1, 3], vec![[0, 3]], true),
+        Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
+        Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
+        Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
+        Step::new(1.0, [5, 2], vec![[5, 3]], false),
     ]);
     board.set_storage(steps_bottom.clone());
     board.set_storage(steps_top.clone());
@@ -66,7 +66,7 @@ async fn main() {
     let mut time_manager = TimeManager::new();
 
     let mut products = Vec::new();
-    let mut last_product = time_manager.now();
+    let mut last_product = time_manager.now() - Duration::from_secs(5);
     // let mut product_spawn_timer =
     //     time_manager.create_repeating_timer(VirtualTime::from_millis(1000));
     loop {
@@ -84,13 +84,15 @@ async fn main() {
         board.reset(LED_OFF_COLOR);
 
         products.retain_mut(|product: &mut Product| {
-            let Some(ligth_point_pos) = product.next(&mut board, &time_manager) else {
+            let Some(light_point_pos) = product.next(&mut board, &time_manager) else {
                 product.finish(&mut board);
                 return false;
             };
-            board.draw_ligth_point(ligth_point_pos, color_to_vec3(product.color));
+            board.draw_light_point(light_point_pos, color_to_vec3(product.color));
             true
         });
+
+        println!("products: {}", products.len());
 
         // Check if it's time to spawn new products using virtual time
         if last_product + Duration::from_millis(3000) < time_manager.now() {

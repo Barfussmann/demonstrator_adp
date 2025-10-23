@@ -1,26 +1,23 @@
+#[cfg(target_arch = "x86_64")]
+use macroquad::prelude::*;
 use std::array::from_fn;
 use std::collections::VecDeque;
 use std::ops::Index;
 use std::ops::IndexMut;
 
-use macroquad::prelude::*;
-
 use crate::constants::*;
 use crate::product::Step;
 
-pub const MAX_PRODUCT_IN_STORAGE: u32 = 5;
-
-#[derive(Debug, Clone, Copy)]
 pub struct Module {
     pub pos: IVec2,
     pub in_production: u32,
     pub max_production: u32,
-    pub brigthness_x: [Vec3; LEDS_PER_DIR],
-    pub brigthness_y: [Vec3; LEDS_PER_DIR],
+    pub brigthness_x: [[f32; 3]; LEDS_PER_DIR],
+    pub brigthness_y: [[f32; 3]; LEDS_PER_DIR],
 }
 
 impl Module {
-    pub fn new(pos: IVec2, color: Vec3) -> Self {
+    pub fn new(pos: IVec2, color: [f32; 3]) -> Self {
         Self {
             pos,
             in_production: 0,
@@ -29,7 +26,7 @@ impl Module {
             brigthness_y: [color; LEDS_PER_DIR],
         }
     }
-    pub fn colors(&self, flip: bool) -> Vec<Vec3> {
+    pub fn colors(&self, flip: bool) -> Vec<[f32; 3]> {
         let mut pixel_x = self.brigthness_x[0..3].to_vec();
         pixel_x.extend_from_slice(&self.brigthness_x[4..7]);
         let mut pixel_y = self.brigthness_y.to_vec();
@@ -65,12 +62,12 @@ impl Module {
             self.brigthness_y,
         );
     }
-    pub fn reset(&mut self, color: Vec3) {
+    pub fn reset(&mut self, color: [f32; 3]) {
         self.brigthness_x = [color; LEDS_PER_DIR];
         self.brigthness_y = [color; LEDS_PER_DIR];
     }
 
-    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = (Vec2, &mut Vec3)> {
+    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = (Vec2, &mut [f32; 3])> {
         let corner = self.pos.as_vec2();
         let side_x = vec2(corner.x, corner.y + 0.5);
         let side_y = vec2(corner.x + 0.5, corner.y);
@@ -99,14 +96,15 @@ impl Module {
         self.in_production >= self.max_production
     }
 }
-fn vec3_to_color(color: Vec3, alpha: f32) -> Color {
-    Color::new(color.x, color.y, color.z, alpha)
+fn vec3_to_color(color: [f32; 3], alpha: f32) -> Color {
+    Color::new(color[0], color[1], color[2], alpha)
 }
-pub fn color_to_vec3(color: Color) -> Vec3 {
-    Vec3::new(color.r, color.g, color.b)
+pub fn color_to_vec3(color: Color) -> [f32; 3] {
+    [color.r, color.g, color.b]
 }
 
-pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [Vec3; LEDS_PER_DIR]) {
+#[cfg(target_arch = "x86_64")]
+pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [[f32; 3]; LEDS_PER_DIR]) {
     let shift_per_led = (end - start) / colors.len() as f32;
     let radius = shift_per_led.length() / 2.;
 
@@ -130,7 +128,7 @@ impl Default for Board {
 }
 
 impl Board {
-    pub fn colors(&self) -> Vec<Vec3> {
+    pub fn colors(&self) -> Vec<[f32; 3]> {
         self.modules
             .iter()
             .enumerate()
@@ -154,7 +152,7 @@ impl Board {
             }),
         }
     }
-    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = (Vec2, &mut Vec3)> {
+    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = (Vec2, &mut [f32; 3])> {
         self.modules
             .as_flattened_mut()
             .iter_mut()
@@ -172,17 +170,21 @@ impl Board {
             module.draw();
         }
     }
-    pub fn reset(&mut self, color: Vec3) {
+    pub fn reset(&mut self, color: [f32; 3]) {
         for module in self.modules.as_flattened_mut() {
             module.reset(color);
         }
     }
-    pub fn draw_ligth_point(&mut self, pos: Vec2, color: Vec3) {
+    pub fn draw_light_point(&mut self, pos: [f32; 2], color: [f32; 3]) {
         for (led_pos, led) in self.iter_mut_leds() {
-            let coloring_strength = 1. - led_pos.distance(pos) / COLOR_RADIUS;
+            let diff = [led_pos[0] - pos[0], led_pos[1] - pos[1]];
+            let distance = diff[0].hypot(diff[1]);
+            let coloring_strength = 1. - distance / COLOR_RADIUS;
 
             if coloring_strength >= 0. {
-                *led += color * coloring_strength;
+                led[0] += color[0] * coloring_strength;
+                led[1] += color[1] * coloring_strength;
+                led[2] += color[2] * coloring_strength;
             } else {
                 continue;
             }
@@ -190,15 +192,15 @@ impl Board {
     }
 }
 
-impl Index<IVec2> for Board {
+impl Index<[i32; 2]> for Board {
     type Output = Module;
 
-    fn index(&self, index: IVec2) -> &Self::Output {
-        &self.modules[index.y as usize][index.x as usize]
+    fn index(&self, index: [i32; 2]) -> &Self::Output {
+        &self.modules[index[1] as usize][index[0] as usize]
     }
 }
-impl IndexMut<IVec2> for Board {
-    fn index_mut(&mut self, index: IVec2) -> &mut Self::Output {
-        &mut self.modules[index.y as usize][index.x as usize]
+impl IndexMut<[i32; 2]> for Board {
+    fn index_mut(&mut self, index: [i32; 2]) -> &mut Self::Output {
+        &mut self.modules[index[1] as usize][index[0] as usize]
     }
 }
