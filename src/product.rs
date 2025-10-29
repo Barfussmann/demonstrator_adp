@@ -5,8 +5,6 @@ use crate::{
     ligth_point::LigthPoint,
     time_manager::{TimeManager, VirtualInstant},
 };
-#[cfg(target_arch = "x86_64")]
-use macroquad::color::Color;
 
 #[derive(Clone, Hash)]
 pub struct Step {
@@ -16,7 +14,7 @@ pub struct Step {
     is_storage: bool,
 }
 impl Step {
-    pub fn new(
+    pub const fn new(
         time_in_seconds: f32,
         maschine_pos: [i32; 2],
         path: Vec<[i32; 2]>,
@@ -25,7 +23,7 @@ impl Step {
         Self {
             path,
             maschine_pos,
-            production_time: Duration::from_secs_f32(time_in_seconds),
+            production_time: Duration::from_millis((time_in_seconds * 1000.0) as u64),
             is_storage: storage,
         }
     }
@@ -61,11 +59,11 @@ enum State {
 pub struct Product {
     remaining_steps: VecDeque<Step>,
     ligth_point: LigthPoint,
-    pub color: Color,
+    pub color: [f32; 3],
     state: State,
 }
 impl Product {
-    pub fn new(color: Color, mut steps: VecDeque<Step>, time_manager: &TimeManager) -> Self {
+    pub fn new(color: [f32; 3], mut steps: VecDeque<Step>, time_manager: &TimeManager) -> Self {
         assert!(steps.len() >= 2, "Fertigungsauftag needs atleast 2 steps");
         let step = steps.pop_front().unwrap();
 
@@ -88,10 +86,10 @@ impl Product {
     fn waiting_in_storage(&self) -> [f32; 2] {
         self.ligth_point.current()
     }
-    pub fn next(&mut self, board: &mut Board, time_manager: &TimeManager) -> Option<[f32; 2]> {
+    pub fn next(&mut self, board: &mut Board) -> Option<[f32; 2]> {
         match &self.state {
             State::Waiting { until, next_step } => {
-                if time_manager.now() >= *until {
+                if board.time_manager.now() >= *until {
                     self.state = State::WaitingForFreeMaschine {
                         next_step: next_step.clone(),
                     };
@@ -117,7 +115,7 @@ impl Product {
                 } else {
                     let step = self.remaining_steps.pop_front()?;
                     self.state = State::Waiting {
-                        until: time_manager.now() + *target_wait,
+                        until: board.time_manager.now() + *target_wait,
                         next_step: step,
                     };
                     Some(self.ligth_point.current())

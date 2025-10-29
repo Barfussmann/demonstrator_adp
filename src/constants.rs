@@ -1,3 +1,7 @@
+use std::{collections::VecDeque, sync::LazyLock};
+
+use crate::product::Step;
+
 pub const X_NUM_MODULES: usize = 6;
 pub const Y_NUM_MODULES: usize = 4;
 pub const DRAW_SCALE: f32 = 1.0;
@@ -12,3 +16,38 @@ pub const MAX_PRODUCT_IN_STORAGE: u32 = 5;
 pub const LED_OFF_COLOR: [f32; 3] = [0.0, 0.0, 0.0];
 
 pub const PIKTOGRAM_PATH: &str = "./assets/demonstrator_piktogramme.png";
+
+pub static STEPS_TOP_NORMAL: LazyLock<VecDeque<Step>> = LazyLock::new(|| {
+    VecDeque::from([
+        Step::new(1.0, [0, 1], vec![[0, 1]], false),
+        Step::new(1.0, [1, 0], vec![[0, 0]], false),
+        Step::new(2.5, [2, 1], vec![[1, 1]], false),
+        Step::new(1.0, [3, 0], vec![[2, 0]], true),
+        Step::new(5.0, [4, 1], vec![[3, 1]], false),
+        Step::new(5.0, [5, 0], vec![[4, 0]], false),
+        Step::new(5.0, [5, 2], vec![[5, 1]], false),
+    ])
+});
+pub static STEPS_BOTTOM_NORMAL: LazyLock<VecDeque<Step>> = LazyLock::new(|| {
+    VecDeque::from([
+        Step::new(1.0, [0, 2], vec![[0, 2]], false),
+        Step::new(1.0, [1, 3], vec![[0, 3]], true),
+        Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
+        Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
+        Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
+        Step::new(1.0, [5, 2], vec![[5, 3]], false),
+    ])
+});
+
+pub static STEPS_BOTTOM_FROM_TOP: LazyLock<VecDeque<Step>> = LazyLock::new(|| {
+    VecDeque::from([
+        Step::new(1.0, [0, 1], vec![[0, 1]], true),
+        Step::new(1.0, [1, 0], vec![[0, 0]], true),
+        Step::new(2.5, [2, 1], vec![[1, 1]], false),
+        Step::new(1.0, [1, 3], vec![[2, 2], [1, 2]], true),
+        Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
+        Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
+        Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
+        Step::new(1.0, [5, 2], vec![[5, 3]], false),
+    ])
+});

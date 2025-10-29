@@ -10,10 +10,13 @@ pub struct VirtualInstant {
 }
 
 impl VirtualInstant {
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self {
-            elapsed: Duration::from_secs(5),
+            elapsed: Duration::from_secs(0),
         }
+    }
+    pub fn inner(&self) -> Duration {
+        self.elapsed
     }
 }
 impl Add<Duration> for VirtualInstant {
@@ -30,12 +33,12 @@ impl AddAssign<Duration> for VirtualInstant {
         *self = *self + rhs;
     }
 }
-impl Sub<Duration> for VirtualInstant {
+impl Sub<VirtualInstant> for VirtualInstant {
     type Output = Self;
 
-    fn sub(self, rhs: Duration) -> Self::Output {
+    fn sub(self, rhs: VirtualInstant) -> Self::Output {
         Self {
-            elapsed: self.elapsed - rhs,
+            elapsed: self.elapsed - rhs.elapsed,
         }
     }
 }
