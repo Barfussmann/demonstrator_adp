@@ -1,5 +1,7 @@
 use std::{collections::VecDeque, time::Duration};
 
+use palette::Srgb;
+
 use crate::{
     board::Board,
     ligth_point::LigthPoint,
@@ -9,10 +11,10 @@ use crate::{
 #[derive(Clone)]
 pub struct ProductPlan {
     pub steps: Vec<Step>,
-    pub color: [f32; 3],
+    pub color: Srgb,
 }
 impl ProductPlan {
-    pub fn new(steps: Vec<Step>, color: [f32; 3]) -> Self {
+    pub fn new(steps: Vec<Step>, color: Srgb) -> Self {
         Self { steps, color }
     }
 }
@@ -70,11 +72,11 @@ enum State {
 pub struct Product {
     remaining_steps: Vec<Step>,
     ligth_point: LigthPoint,
-    pub color: [f32; 3],
+    pub color: Srgb,
     state: State,
 }
 impl Product {
-    pub fn new(color: [f32; 3], mut steps: Vec<Step>, time_manager: &TimeManager) -> Self {
+    pub fn new(color: Srgb, mut steps: Vec<Step>, time_manager: &TimeManager) -> Self {
         assert!(steps.len() >= 2, "Fertigungsauftag needs atleast 2 steps");
         let step = steps.remove(0);
 

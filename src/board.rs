@@ -1,5 +1,7 @@
+use glam::{Vec2, vec2};
 #[cfg(target_arch = "x86_64")]
-use macroquad::prelude::*;
+use macroquad::prelude::{Color, GREEN, draw_circle, draw_text, request_new_screen_size};
+use palette::Srgb;
 use std::array::from_fn;
 use std::ops::Index;
 use std::ops::IndexMut;
@@ -16,12 +18,12 @@ pub struct Module {
     pub pos: [i32; 2],
     pub in_production: u32,
     pub max_production: u32,
-    pub brigthness_x: [[f32; 3]; LEDS_PER_DIR],
-    pub brigthness_y: [[f32; 3]; LEDS_PER_DIR],
+    pub brigthness_x: [Srgb; LEDS_PER_DIR],
+    pub brigthness_y: [Srgb; LEDS_PER_DIR],
 }
 
 impl Module {
-    pub fn new(pos: [i32; 2], color: [f32; 3]) -> Self {
+    pub fn new(pos: [i32; 2], color: Srgb) -> Self {
         Self {
             pos,
             in_production: 0,
@@ -30,7 +32,7 @@ impl Module {
             brigthness_y: [color; LEDS_PER_DIR],
         }
     }
-    pub fn colors(&self, flip: bool) -> Vec<[f32; 3]> {
+    pub fn colors(&self, flip: bool) -> Vec<Srgb> {
         let mut pixel_y = self.brigthness_y.to_vec();
         let mut pixel_x = self.brigthness_x[0..3].to_vec();
         pixel_x.extend_from_slice(&self.brigthness_x[4..7]);
@@ -72,12 +74,12 @@ impl Module {
             self.brigthness_y,
         );
     }
-    pub fn reset(&mut self, color: [f32; 3]) {
+    pub fn reset(&mut self, color: Srgb) {
         self.brigthness_x = [color; LEDS_PER_DIR];
         self.brigthness_y = [color; LEDS_PER_DIR];
     }
 
-    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = ([f32; 2], &mut [f32; 3])> {
+    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = ([f32; 2], &mut Srgb)> {
         let corner = [self.pos[0] as f32, self.pos[1] as f32];
         let side_x = [corner[0], corner[1] + 0.5];
         let side_y = [corner[0] + 0.5, corner[1]];
@@ -107,16 +109,16 @@ impl Module {
     }
 }
 #[cfg(target_arch = "x86_64")]
-fn vec3_to_color(color: [f32; 3], alpha: f32) -> Color {
-    Color::new(color[0], color[1], color[2], alpha)
+fn vec3_to_color(color: Srgb, alpha: f32) -> Color {
+    Color::new(color.red, color.green, color.blue, alpha)
 }
 #[cfg(target_arch = "x86_64")]
-pub fn color_to_vec3(color: Color) -> [f32; 3] {
-    [color.r, color.g, color.b]
+pub fn color_to_vec3(color: Color) -> Srgb {
+    Srgb::new(color.r, color.g, color.b)
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [[f32; 3]; LEDS_PER_DIR]) {
+pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [Srgb; LEDS_PER_DIR]) {
     let shift_per_led = (end - start) / colors.len() as f32;
     let radius = shift_per_led.length() / 2.;
 
@@ -201,7 +203,7 @@ impl Board {
         self.time_manager.reset();
         self.products = Vec::new();
     }
-    pub fn colors(&self) -> Vec<[f32; 3]> {
+    pub fn colors(&self) -> Vec<Srgb> {
         let mut colors = Vec::new();
 
         for x in 0..X_NUM_MODULES {
@@ -238,7 +240,7 @@ impl Board {
             products: Vec::new(),
         }
     }
-    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = ([f32; 2], &mut [f32; 3])> {
+    pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = ([f32; 2], &mut Srgb)> {
         self.modules
             .as_flattened_mut()
             .iter_mut()
@@ -257,21 +259,22 @@ impl Board {
             module.draw();
         }
     }
-    pub fn reset(&mut self, color: [f32; 3]) {
+    pub fn reset(&mut self, color: Srgb) {
         for module in self.modules.as_flattened_mut() {
             module.reset(color);
         }
     }
-    pub fn draw_light_point(&mut self, pos: [f32; 2], color: [f32; 3]) {
+    pub fn draw_light_point(&mut self, pos: [f32; 2], color: Srgb) {
         for (led_pos, led) in self.iter_mut_leds() {
             let diff = [led_pos[0] - pos[0], led_pos[1] - pos[1]];
             let distance = diff[0].hypot(diff[1]);
             let coloring_strength = 1. - distance / COLOR_RADIUS;
 
             if coloring_strength >= 0. {
-                led[0] += color[0] * coloring_strength;
-                led[1] += color[1] * coloring_strength;
-                led[2] += color[2] * coloring_strength;
+                *led += color * coloring_strength;
+                // led[0] += color[0] * coloring_strength;
+                // led[1] += color[1] * coloring_strength;
+                // led[2] += color[2] * coloring_strength;
             } else {
                 continue;
             }

@@ -1,5 +1,7 @@
 use std::sync::LazyLock;
 
+use palette::Srgb;
+
 use crate::product::{ProductPlan, Step};
 
 pub const X_NUM_MODULES: usize = 6;
@@ -13,10 +15,10 @@ pub const EPSILON: f32 = 1e-4;
 
 pub const MAX_PRODUCT_IN_STORAGE: u32 = 5;
 
-pub const LED_OFF_COLOR: [f32; 3] = [0.0, 0.0, 0.0];
+pub const LED_OFF_COLOR: Srgb = Srgb::new(0.0, 0.0, 0.0);
 
-pub const BLUE: [f32; 3] = [0.00, 0.89, 0.19];
-pub const RED: [f32; 3] = [0.90, 0.16, 0.22];
+pub const BLUE: Srgb = Srgb::new(0.00, 0.89, 0.19);
+pub const RED: Srgb = Srgb::new(0.90, 0.16, 0.22);
 
 pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
     ProductPlan::new(

@@ -17,3 +17,7 @@ macroquad = "0.4.13"
 
 [target.'cfg(not(target_arch = "x86_64"))'.dependencies]
 blinkt = "0.7.1"
+
+[dependencies]
+glam = "0.30.9"
+palette = "0.7.6"
