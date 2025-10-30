@@ -202,9 +202,15 @@ impl Board {
         let mut colors = Vec::new();
 
         for x in 0..X_NUM_MODULES {
-            for y in 0..Y_NUM_MODULES {
+            let flip = x % 2 == 1;
+
+            let mut iter = match flip {
+                true => (0..Y_NUM_MODULES).rev().collect::<Vec<_>>(),
+                false => (0..Y_NUM_MODULES).collect::<Vec<_>>(),
+            };
+
+            for y in iter {
                 let module = &self.modules[y][x];
-                let flip = x % 2 == 1;
                 colors.extend(module.colors(flip));
             }
         }
