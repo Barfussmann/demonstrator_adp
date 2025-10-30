@@ -20,7 +20,7 @@ use macroquad::prelude::*;
 use product::{Product, Step};
 use time_manager::TimeManager;
 
-use crate::{board::Scenario, product::Steps};
+use crate::{board::Scenario, product::ProductPlan};
 
 mod board;
 mod constants;
@@ -62,7 +62,7 @@ async fn main_inner() {
         X_NUM_MODULES * Y_NUM_MODULES * (7 + 6),
     );
 
-    let steps_bottom_from_top = Steps::new(
+    let steps_bottom_from_top = ProductPlan::new(
         vec![
             Step::new(1.0, [0, 1], vec![[0, 1]], true),
             Step::new(1.0, [1, 0], vec![[0, 0]], true),

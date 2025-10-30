@@ -212,7 +212,7 @@ impl Board {
         colors
     }
     pub fn set_storage(&mut self, product_plan: ProductPlan) {
-        for step in &steps.steps {
+        for step in &product_plan.steps {
             if step.is_storage() {
                 self[step.maschine_pos()].max_production = MAX_PRODUCT_IN_STORAGE;
             }
