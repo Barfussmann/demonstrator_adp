@@ -7,11 +7,11 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct Steps {
+pub struct ProductPlan {
     pub steps: Vec<Step>,
     pub color: [f32; 3],
 }
-impl Steps {
+impl ProductPlan {
     pub fn new(steps: Vec<Step>, color: [f32; 3]) -> Self {
         Self { steps, color }
     }

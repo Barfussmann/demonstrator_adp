@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::product::{Step, Steps};
+use crate::product::{ProductPlan, Step};
 
 pub const X_NUM_MODULES: usize = 6;
 pub const Y_NUM_MODULES: usize = 4;
@@ -18,8 +18,8 @@ pub const LED_OFF_COLOR: [f32; 3] = [0.0, 0.0, 0.0];
 pub const BLUE: [f32; 3] = [0.00, 0.89, 0.19];
 pub const RED: [f32; 3] = [0.90, 0.16, 0.22];
 
-pub static STEPS_TOP_NORMAL: LazyLock<Steps> = LazyLock::new(|| {
-    Steps::new(
+pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
+    ProductPlan::new(
         vec![
             Step::new(1.0, [0, 1], vec![[0, 1]], false),
             Step::new(1.0, [1, 0], vec![[0, 0]], false),
@@ -32,8 +32,8 @@ pub static STEPS_TOP_NORMAL: LazyLock<Steps> = LazyLock::new(|| {
         BLUE,
     )
 });
-pub static STEPS_BOTTOM_NORMAL: LazyLock<Steps> = LazyLock::new(|| {
-    Steps::new(
+pub static STEPS_BOTTOM_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
+    ProductPlan::new(
         vec![
             Step::new(1.0, [0, 2], vec![[0, 2]], false),
             Step::new(1.0, [1, 3], vec![[0, 3]], true),
@@ -46,8 +46,8 @@ pub static STEPS_BOTTOM_NORMAL: LazyLock<Steps> = LazyLock::new(|| {
     )
 });
 
-pub static STEPS_BOTTOM_FROM_TOP: LazyLock<Steps> = LazyLock::new(|| {
-    Steps::new(
+pub static STEPS_BOTTOM_FROM_TOP: LazyLock<ProductPlan> = LazyLock::new(|| {
+    ProductPlan::new(
         vec![
             Step::new(1.0, [0, 1], vec![[0, 1]], true),
             Step::new(1.0, [1, 0], vec![[0, 0]], true),

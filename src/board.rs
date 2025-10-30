@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use crate::constants::*;
 use crate::product::Product;
-use crate::product::Steps;
+use crate::product::ProductPlan;
 use crate::time_manager::TimeManager;
 use crate::time_manager::VirtualInstant;
 // use crate::
@@ -127,8 +127,8 @@ pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [[f32; 3]; LEDS_PER_DIR]) 
 }
 
 pub struct Scenario {
-    pub starting_steps: Vec<Steps>,
-    pub disturbance_steps: Vec<Steps>,
+    pub starting_steps: Vec<ProductPlan>,
+    pub disturbance_steps: Vec<ProductPlan>,
     pub starting_time: VirtualInstant,
     pub pre_duration: Duration,
     pub disturbance_duration: Duration,
@@ -145,7 +145,7 @@ impl Scenario {
             state: ScenarioState::Start,
         }
     }
-    fn current_steps(&self) -> Vec<Steps> {
+    fn current_steps(&self) -> Vec<ProductPlan> {
         match self.state {
             ScenarioState::Start => self.starting_steps.clone(),
             ScenarioState::Disturbtion => self.disturbance_steps.clone(),
@@ -211,7 +211,7 @@ impl Board {
 
         colors
     }
-    pub fn set_storage(&mut self, steps: Steps) {
+    pub fn set_storage(&mut self, product_plan: ProductPlan) {
         for step in &steps.steps {
             if step.is_storage() {
                 self[step.maschine_pos()].max_production = MAX_PRODUCT_IN_STORAGE;
