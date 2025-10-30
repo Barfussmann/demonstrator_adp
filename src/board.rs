@@ -1,15 +1,13 @@
-use macroquad::prelude::state_machine::State;
 #[cfg(target_arch = "x86_64")]
 use macroquad::prelude::*;
 use std::array::from_fn;
-use std::collections::VecDeque;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::time::Duration;
 
 use crate::constants::*;
 use crate::product::Product;
-use crate::product::Step;
+use crate::product::Steps;
 use crate::time_manager::TimeManager;
 use crate::time_manager::VirtualInstant;
 // use crate::
@@ -129,8 +127,8 @@ pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [[f32; 3]; LEDS_PER_DIR]) 
 }
 
 pub struct Scenario {
-    pub starting_steps: [VecDeque<Step>; 2],
-    pub disturbance_steps: [VecDeque<Step>; 2],
+    pub starting_steps: Vec<Steps>,
+    pub disturbance_steps: Vec<Steps>,
     pub starting_time: VirtualInstant,
     pub pre_duration: Duration,
     pub disturbance_duration: Duration,
@@ -139,15 +137,15 @@ pub struct Scenario {
 impl Scenario {
     fn starting_scenario() -> Scenario {
         Self {
-            starting_steps: [STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
-            disturbance_steps: [STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
+            starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
+            disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
             starting_time: VirtualInstant::zero(),
             pre_duration: Duration::from_secs(1_000_000),
             disturbance_duration: Duration::from_secs(1_000_000),
             state: ScenarioState::Start,
         }
     }
-    fn current_steps(&self) -> [VecDeque<Step>; 2] {
+    fn current_steps(&self) -> Vec<Steps> {
         match self.state {
             ScenarioState::Start => self.starting_steps.clone(),
             ScenarioState::Disturbtion => self.disturbance_steps.clone(),
@@ -213,8 +211,8 @@ impl Board {
 
         colors
     }
-    pub fn set_storage(&mut self, steps: VecDeque<Step>) {
-        for step in &steps {
+    pub fn set_storage(&mut self, steps: Steps) {
+        for step in &steps.steps {
             if step.is_storage() {
                 self[step.maschine_pos()].max_production = MAX_PRODUCT_IN_STORAGE;
             }
@@ -276,27 +274,40 @@ impl Board {
         self.current_scenario.update(&self.time_manager);
 
         let current_steps = self.current_scenario.current_steps();
-        let top_spawning_pos = current_steps[0][0].maschine_pos();
-        let bottom_spawning_pos = current_steps[1][0].maschine_pos();
 
-        // we have to move the check before the in_production += 1 to allow double spawning
-        let is_bottom_full = self[bottom_spawning_pos].is_full();
-        if !self[top_spawning_pos].is_full() {
-            self.products.push(Product::new(
-                [0.00, 0.89, 0.19],
-                current_steps[0].clone(),
-                &self.time_manager,
-            ));
-            self[top_spawning_pos].in_production += 1;
+        let mut new_products = Vec::new();
+        for product in current_steps {
+            let starting_maschine = product.steps[0].maschine_pos();
+            if !self[starting_maschine].is_full() {
+                new_products.push((
+                    Product::new(product.color, product.steps, &self.time_manager),
+                    starting_maschine,
+                ))
+            }
         }
-        if !is_bottom_full {
-            self.products.push(Product::new(
-                [0.90, 0.16, 0.22],
-                current_steps[1].clone(),
-                &self.time_manager,
-            ));
-            self[bottom_spawning_pos].in_production += 1;
+        for (product, starting_pos) in new_products {
+            self[starting_pos].in_production += 1;
+            self.products.push(product);
         }
+
+        // self.products.extend(new_products);
+        // let is_bottom_full = self[bottom_spawning_pos].is_full();
+        // if !self[top_spawning_pos].is_full() {
+        //     self.products.push(Product::new(
+        //         [0.00, 0.89, 0.19],
+        //         current_steps[0].clone(),
+        //         &self.time_manager,
+        //     ));
+        //     self[top_spawning_pos].in_production += 1;
+        // }
+        // if !is_bottom_full {
+        //     self.products.push(Product::new(
+        //         [0.90, 0.16, 0.22],
+        //         current_steps[1].clone(),
+        //         &self.time_manager,
+        //     ));
+        //     self[bottom_spawning_pos].in_production += 1;
+        // }
         let mut products = std::mem::take(&mut self.products);
         products.retain_mut(|product: &mut Product| {
             let Some(light_point_pos) = product.next(self) else {

@@ -20,7 +20,7 @@ use macroquad::prelude::*;
 use product::{Product, Step};
 use time_manager::TimeManager;
 
-use crate::board::Scenario;
+use crate::{board::Scenario, product::Steps};
 
 mod board;
 mod constants;
@@ -62,22 +62,25 @@ async fn main_inner() {
         X_NUM_MODULES * Y_NUM_MODULES * (7 + 6),
     );
 
-    let steps_bottom_from_top = VecDeque::from([
-        Step::new(1.0, [0, 1], vec![[0, 1]], true),
-        Step::new(1.0, [1, 0], vec![[0, 0]], true),
-        Step::new(2.5, [2, 1], vec![[1, 1]], false),
-        Step::new(1.0, [1, 3], vec![[2, 2], [1, 2]], true),
-        Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
-        Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
-        Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
-        Step::new(1.0, [5, 2], vec![[5, 3]], false),
-    ]);
+    let steps_bottom_from_top = Steps::new(
+        vec![
+            Step::new(1.0, [0, 1], vec![[0, 1]], true),
+            Step::new(1.0, [1, 0], vec![[0, 0]], true),
+            Step::new(2.5, [2, 1], vec![[1, 1]], false),
+            Step::new(1.0, [1, 3], vec![[2, 2], [1, 2]], true),
+            Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
+            Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
+            Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
+            Step::new(1.0, [5, 2], vec![[5, 3]], false),
+        ],
+        constants::RED,
+    );
     board.set_storage(STEPS_TOP_NORMAL.clone());
     board.set_storage(STEPS_BOTTOM_NORMAL.clone());
 
     board.set_scenario(Scenario {
-        starting_steps: [STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
-        disturbance_steps: [STEPS_TOP_NORMAL.clone(), steps_bottom_from_top.clone()],
+        starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
+        disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), steps_bottom_from_top.clone()],
         pre_duration: Duration::from_secs(10),
         starting_time: board.time_manager.now(),
         disturbance_duration: Duration::from_secs(56),

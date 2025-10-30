@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, hash::Hash, time::Duration};
+use std::{collections::VecDeque, time::Duration};
 
 use crate::{
     board::Board,
@@ -6,7 +6,18 @@ use crate::{
     time_manager::{TimeManager, VirtualInstant},
 };
 
-#[derive(Clone, Hash)]
+#[derive(Clone)]
+pub struct Steps {
+    pub steps: Vec<Step>,
+    pub color: [f32; 3],
+}
+impl Steps {
+    pub fn new(steps: Vec<Step>, color: [f32; 3]) -> Self {
+        Self { steps, color }
+    }
+}
+
+#[derive(Clone)]
 pub struct Step {
     path: Vec<[i32; 2]>,
     maschine_pos: [i32; 2],
@@ -57,15 +68,15 @@ enum State {
 }
 
 pub struct Product {
-    remaining_steps: VecDeque<Step>,
+    remaining_steps: Vec<Step>,
     ligth_point: LigthPoint,
     pub color: [f32; 3],
     state: State,
 }
 impl Product {
-    pub fn new(color: [f32; 3], mut steps: VecDeque<Step>, time_manager: &TimeManager) -> Self {
+    pub fn new(color: [f32; 3], mut steps: Vec<Step>, time_manager: &TimeManager) -> Self {
         assert!(steps.len() >= 2, "Fertigungsauftag needs atleast 2 steps");
-        let step = steps.pop_front().unwrap();
+        let step = steps.remove(0);
 
         let path = step.path();
 
@@ -73,7 +84,7 @@ impl Product {
         Self {
             state: State::Waiting {
                 until: time_manager.now() + step.production_time,
-                next_step: steps.pop_front().unwrap(),
+                next_step: steps.remove(0),
             },
             remaining_steps: steps,
             ligth_point,
@@ -113,7 +124,10 @@ impl Product {
                 if let Some(pos) = self.ligth_point.next() {
                     Some(pos)
                 } else {
-                    let step = self.remaining_steps.pop_front()?;
+                    if self.remaining_steps.is_empty() {
+                        return None;
+                    }
+                    let step = self.remaining_steps.remove(0);
                     self.state = State::Waiting {
                         until: board.time_manager.now() + *target_wait,
                         next_step: step,
