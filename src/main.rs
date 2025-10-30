@@ -103,13 +103,12 @@ async fn main_inner() {
 
         #[cfg(not(target_arch = "x86_64"))]
         for (pixel, mut color) in blinkt.iter_mut().zip(board.colors()) {
-            color[0] = color[0].clamp(0.0, 1.0) * 255.0;
-            color[1] = color[1].clamp(0.0, 1.0) * 255.0;
-            color[2] = color[2].clamp(0.0, 1.0) * 255.0;
-
-            // color *= 255.0;
-            // color = color.clamp(Vec3::splat(0.0), Vec3::splat(255.0));
-            pixel.set_rgbb(color[0] as u8, color[1] as u8, color[2] as u8, 0.1);
+            pixel.set_rgbb(
+                (color.red * 255.0) as u8,
+                (color.green * 255.0) as u8,
+                (color.blue * 255.0) as u8,
+                0.1,
+            );
         }
         #[cfg(not(target_arch = "x86_64"))]
         blinkt.show().unwrap();
