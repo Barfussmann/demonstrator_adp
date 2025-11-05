@@ -14,12 +14,20 @@ use crate::time_manager::TimeManager;
 use crate::time_manager::VirtualInstant;
 // use crate::
 
+#[derive(Clone, Debug)]
+pub enum ModuleState {
+    Functional,
+    Maintaining,
+    Broken,
+}
+
 pub struct Module {
     pub pos: [i32; 2],
     pub in_production: u32,
     pub max_production: u32,
     pub brigthness_x: [Srgb; LEDS_PER_DIR],
     pub brigthness_y: [Srgb; LEDS_PER_DIR],
+    pub state: ModuleState,
 }
 
 impl Module {
@@ -30,6 +38,7 @@ impl Module {
             max_production: 1,
             brigthness_x: [color; LEDS_PER_DIR],
             brigthness_y: [color; LEDS_PER_DIR],
+            state: ModuleState::Functional,
         }
     }
     pub fn colors(&self, flip: bool) -> Vec<Srgb> {
@@ -74,7 +83,11 @@ impl Module {
             self.brigthness_y,
         );
     }
-    pub fn reset(&mut self, color: Srgb) {
+    pub fn reset(&mut self) {
+        self.in_production = 0;
+        self.state = ModuleState::Functional;
+    }
+    pub fn set_all_colors(&mut self, color: Srgb) {
         self.brigthness_x = [color; LEDS_PER_DIR];
         self.brigthness_y = [color; LEDS_PER_DIR];
     }
@@ -104,8 +117,8 @@ impl Module {
         x_leds.chain(y_leds)
     }
 
-    pub fn is_full(&self) -> bool {
-        self.in_production >= self.max_production
+    pub fn can_receiv_product(&self) -> bool {
+        self.in_production < self.max_production && matches!(self.state, ModuleState::Functional)
     }
 }
 #[cfg(target_arch = "x86_64")]
@@ -131,23 +144,40 @@ pub fn draw_led_strip(start: Vec2, end: Vec2, colors: [Srgb; LEDS_PER_DIR]) {
     }
 }
 
+#[derive(Clone)]
+pub struct MachineStateChange {
+    time: Duration,
+    state: ModuleState,
+    pos: [i32; 2],
+}
+impl MachineStateChange {
+    pub fn new(time: Duration, state: ModuleState, pos: [i32; 2]) -> Self {
+        Self { time, state, pos }
+    }
+}
+
+#[derive(Clone)]
 pub struct Scenario {
+    pub name: String,
     pub starting_steps: Vec<ProductPlan>,
     pub disturbance_steps: Vec<ProductPlan>,
     pub starting_time: VirtualInstant,
     pub pre_duration: Duration,
     pub disturbance_duration: Duration,
     pub state: ScenarioState,
+    pub machine_state_changes: Vec<MachineStateChange>,
 }
 impl Scenario {
-    fn starting_scenario() -> Scenario {
+    pub fn starting_scenario() -> Scenario {
         Self {
+            name: "Starting Scenario".to_string(),
             starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
             disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
             starting_time: VirtualInstant::zero(),
             pre_duration: Duration::from_secs(1_000_000),
             disturbance_duration: Duration::from_secs(1_000_000),
             state: ScenarioState::Start,
+            machine_state_changes: Vec::new(),
         }
     }
     fn current_steps(&self) -> Vec<ProductPlan> {
@@ -157,16 +187,17 @@ impl Scenario {
             ScenarioState::End => self.starting_steps.clone(),
         }
     }
-    fn current_duration(&self) -> Duration {
+    fn current_state_durration(&self) -> Duration {
         match self.state {
             ScenarioState::Start => self.pre_duration,
             ScenarioState::Disturbtion => self.disturbance_duration,
             ScenarioState::End => Duration::from_secs(1_000_000),
         }
     }
-    fn update(&mut self, time: &TimeManager) {
+    #[must_use]
+    fn update(&mut self, time: &TimeManager) -> Vec<MachineStateChange> {
         let elapsed = (time.now() - self.starting_time).inner();
-        if elapsed >= self.current_duration() {
+        if elapsed >= self.current_state_durration() {
             self.starting_time = time.now();
             self.state = match self.state {
                 ScenarioState::Start => ScenarioState::Disturbtion,
@@ -175,6 +206,17 @@ impl Scenario {
             };
             println!("Went to state: {:?}", self.state);
         }
+        let mut activated_machine_states = Vec::new();
+        let mut machine_state_changes = std::mem::take(&mut self.machine_state_changes);
+        machine_state_changes.retain(|machine_state_change| {
+            let is_active = machine_state_change.time < time.now().inner();
+            if is_active {
+                activated_machine_states.push(machine_state_change.clone());
+            }
+            !is_active
+        });
+        self.machine_state_changes = machine_state_changes;
+        activated_machine_states
     }
 }
 #[derive(Debug, Clone, Copy)]
@@ -199,6 +241,10 @@ impl Default for Board {
 
 impl Board {
     pub fn set_scenario(&mut self, scenario: Scenario) {
+        println!("Starting Scenario: {}", &scenario.name);
+        for module in self.modules.as_flattened_mut() {
+            module.reset();
+        }
         self.current_scenario = scenario;
         self.time_manager.reset();
         self.products = Vec::new();
@@ -261,7 +307,7 @@ impl Board {
     }
     pub fn reset(&mut self, color: Srgb) {
         for module in self.modules.as_flattened_mut() {
-            module.reset(color);
+            module.set_all_colors(color);
         }
     }
     pub fn draw_light_point(&mut self, pos: [f32; 2], color: Srgb) {
@@ -272,9 +318,6 @@ impl Board {
 
             if coloring_strength >= 0. {
                 *led += color * coloring_strength;
-                // led[0] += color[0] * coloring_strength;
-                // led[1] += color[1] * coloring_strength;
-                // led[2] += color[2] * coloring_strength;
             } else {
                 continue;
             }
@@ -283,14 +326,22 @@ impl Board {
 
     pub fn update(&mut self) {
         self.time_manager.update();
-        self.current_scenario.update(&self.time_manager);
+        let activated_machine_states = self.current_scenario.update(&self.time_manager);
+        for machine_state in activated_machine_states {
+            println!("Activated Statechange at: {:?}", machine_state.pos);
+            println!(
+                "From {:?} to {:?}",
+                self[machine_state.pos].state, machine_state.state
+            );
+            self[machine_state.pos].state = machine_state.state;
+        }
 
         let current_steps = self.current_scenario.current_steps();
 
         let mut new_products = Vec::new();
         for product in current_steps {
             let starting_maschine = product.steps[0].maschine_pos();
-            if !self[starting_maschine].is_full() {
+            if self[starting_maschine].can_receiv_product() {
                 new_products.push((
                     Product::new(product.color, product.steps, &self.time_manager),
                     starting_maschine,

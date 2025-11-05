@@ -20,7 +20,11 @@ use macroquad::prelude::*;
 use product::{Product, Step};
 use time_manager::TimeManager;
 
-use crate::{board::Scenario, product::ProductPlan};
+use crate::{
+    board::{MachineStateChange, Scenario},
+    product::ProductPlan,
+    time_manager::VirtualInstant,
+};
 
 mod board;
 mod constants;
@@ -78,14 +82,39 @@ async fn main_inner() {
     board.set_storage(STEPS_TOP_NORMAL.clone());
     board.set_storage(STEPS_BOTTOM_NORMAL.clone());
 
-    board.set_scenario(Scenario {
+    let normal = Scenario::starting_scenario();
+    let bottom_supply_difficulty = Scenario {
+        name: "Supplyer ausfall oben".to_string(),
         starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
         disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), steps_bottom_from_top.clone()],
         pre_duration: Duration::from_secs(10),
         starting_time: board.time_manager.now(),
         disturbance_duration: Duration::from_secs(56),
         state: board::ScenarioState::Start,
-    });
+        machine_state_changes: vec![],
+    };
+    let maintenance = Scenario {
+        name: "Wartung Oben".to_string(),
+        starting_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
+        disturbance_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
+        pre_duration: Duration::from_secs(25),
+        starting_time: board.time_manager.now(),
+        disturbance_duration: Duration::from_secs(20),
+        state: board::ScenarioState::Start,
+        machine_state_changes: vec![
+            MachineStateChange::new(
+                Duration::from_secs(32),
+                board::ModuleState::Maintaining,
+                [4, 1],
+            ),
+            MachineStateChange::new(
+                Duration::from_secs(32 + 20),
+                board::ModuleState::Functional,
+                [4, 1],
+            ),
+        ],
+    };
+    board.set_scenario(bottom_supply_difficulty.clone());
 
     loop {
         let start_time = Instant::now();
@@ -115,6 +144,14 @@ async fn main_inner() {
 
         #[cfg(target_arch = "x86_64")]
         {
+            for key in get_keys_pressed() {
+                match key {
+                    KeyCode::Key7 => board.set_scenario(normal.clone()),
+                    KeyCode::Key8 => board.set_scenario(bottom_supply_difficulty.clone()),
+                    KeyCode::Key9 => board.set_scenario(maintenance.clone()),
+                    _ => {}
+                }
+            }
             board.draw();
             // Draw speed indicator
             draw_speed_indicator(&board.time_manager, vec2(10.0, 10.0));
@@ -131,34 +168,25 @@ async fn main_inner() {
 #[cfg(target_arch = "x86_64")]
 /// Handle keyboard input for time control
 fn handle_time_controls(time_manager: &mut TimeManager) {
-    // Speed controls
-    if is_key_pressed(KeyCode::Key1) {
-        time_manager.set_speed(0.25); // Quarter speed
-    }
-    if is_key_pressed(KeyCode::Key2) {
-        time_manager.set_speed(0.5); // Half speed
-    }
-    if is_key_pressed(KeyCode::Key3) {
-        time_manager.set_speed(1.0); // Normal speed
-    }
-    if is_key_pressed(KeyCode::Key4) {
-        time_manager.set_speed(2.0); // Double speed
-    }
-    if is_key_pressed(KeyCode::Key5) {
-        time_manager.set_speed(4.0); // Quadruple speed
-    }
-    if is_key_pressed(KeyCode::Key6) {
-        time_manager.set_speed(8.0); // 8x speed
-    }
-
-    // Fine speed adjustment
-    if is_key_pressed(KeyCode::Up) {
-        let current_speed = time_manager.speed();
-        time_manager.set_speed((current_speed * 1.25).min(10.0));
-    }
-    if is_key_pressed(KeyCode::Down) {
-        let current_speed = time_manager.speed();
-        time_manager.set_speed((current_speed * 0.8).max(0.1));
+    for key in get_keys_pressed() {
+        match key {
+            KeyCode::Key1 => time_manager.set_speed(0.25), // Quarter speed
+            KeyCode::Key2 => time_manager.set_speed(0.5),  // Half speed
+            KeyCode::Key3 => time_manager.set_speed(1.0),  // Normal speed
+            KeyCode::Key4 => time_manager.set_speed(2.0),  // Double speed
+            KeyCode::Key5 => time_manager.set_speed(4.0),  // Quadruple speed
+            KeyCode::Key6 => time_manager.set_speed(8.0),  // 8x speed
+            KeyCode::Up => {
+                // fine speed adjustment
+                let current_speed = time_manager.speed();
+                time_manager.set_speed((current_speed * 1.25).min(10.0));
+            }
+            KeyCode::Down => {
+                let current_speed = time_manager.speed();
+                time_manager.set_speed((current_speed * 0.8).max(0.1));
+            }
+            _ => {}
+        }
     }
 }
 

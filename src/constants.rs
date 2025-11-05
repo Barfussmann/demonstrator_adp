@@ -17,8 +17,9 @@ pub const MAX_PRODUCT_IN_STORAGE: u32 = 5;
 
 pub const LED_OFF_COLOR: Srgb = Srgb::new(0.0, 0.0, 0.0);
 
-pub const BLUE: Srgb = Srgb::new(0.00, 0.89, 0.19);
+pub const GREEN_: Srgb = Srgb::new(0.00, 0.89, 0.19);
 pub const RED: Srgb = Srgb::new(0.90, 0.16, 0.22);
+pub const BLUE: Srgb = Srgb::new(0.19, 0.00, 0.89);
 
 pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
     ProductPlan::new(
@@ -27,13 +28,30 @@ pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
             Step::new(1.0, [1, 0], vec![[0, 0]], false),
             Step::new(2.5, [2, 1], vec![[1, 1]], false),
             Step::new(1.0, [3, 0], vec![[2, 0]], true),
-            Step::new(5.0, [4, 1], vec![[3, 1]], false),
+            Step::new(2.5, [4, 1], vec![[3, 1]], false),
+            Step::new(1.0, [3, 0], vec![[4, 0]], false),
             Step::new(5.0, [5, 0], vec![[4, 0]], false),
-            Step::new(5.0, [5, 2], vec![[5, 1]], false),
+            Step::new(2.5, [5, 2], vec![[5, 1]], false),
+        ],
+        GREEN_,
+    )
+});
+pub static STEPS_TOP_MAINTAINANCE: LazyLock<ProductPlan> = LazyLock::new(|| {
+    ProductPlan::new(
+        vec![
+            Step::new(1.0, [0, 1], vec![[0, 1]], false),
+            Step::new(1.0, [1, 0], vec![[0, 0]], false),
+            Step::new(2.5, [2, 1], vec![[1, 1]], false),
+            // Step::new(1.0, [3, 0], vec![[2, 0]], true),
+            Step::new(2.5, [4, 1], vec![[3, 1]], false),
+            Step::new(1.0, [3, 0], vec![[4, 0]], true),
+            Step::new(5.0, [5, 0], vec![[4, 0]], false),
+            Step::new(2.5, [5, 2], vec![[5, 1]], false),
         ],
         BLUE,
     )
 });
+
 pub static STEPS_BOTTOM_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
     ProductPlan::new(
         vec![

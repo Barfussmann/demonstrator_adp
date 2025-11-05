@@ -110,7 +110,7 @@ impl Product {
                 Some(self.waiting_in_storage())
             }
             State::WaitingForFreeMaschine { next_step } => {
-                if board[next_step.maschine_pos].is_full() {
+                if !board[next_step.maschine_pos].can_receiv_product() {
                     return Some(self.waiting_in_storage());
                 };
                 board[self.ligth_point.current_i32x2()].in_production -= 1;
