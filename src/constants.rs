@@ -1,8 +1,12 @@
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 use palette::Srgb;
 
-use crate::product::{ProductPlan, Step};
+use crate::{
+    board::{self, MachineStateChange, Scenario},
+    product::{ProductPlan, Step},
+    time_manager::VirtualInstant,
+};
 
 pub const X_NUM_MODULES: usize = 6;
 pub const Y_NUM_MODULES: usize = 4;
@@ -80,4 +84,36 @@ pub static STEPS_BOTTOM_FROM_TOP: LazyLock<ProductPlan> = LazyLock::new(|| {
         ],
         RED,
     )
+});
+
+pub static BOTTOM_SUPPLY_DIFFICULTY: LazyLock<Scenario> = LazyLock::new(|| Scenario {
+    name: "Supplyer ausfall oben".to_string(),
+    starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
+    disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_FROM_TOP.clone()],
+    pre_duration: Duration::from_secs(10),
+    starting_time: VirtualInstant::zero(),
+    disturbance_duration: Duration::from_secs(56),
+    state: board::ScenarioState::Start,
+    machine_state_changes: vec![],
+});
+pub static MAINTENANCE: LazyLock<Scenario> = LazyLock::new(|| Scenario {
+    name: "Wartung Oben".to_string(),
+    starting_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
+    disturbance_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
+    pre_duration: Duration::from_secs(25),
+    starting_time: VirtualInstant::zero(),
+    disturbance_duration: Duration::from_secs(20),
+    state: board::ScenarioState::Start,
+    machine_state_changes: vec![
+        MachineStateChange::new(
+            Duration::from_secs(32),
+            board::ModuleState::Maintaining,
+            [4, 1],
+        ),
+        MachineStateChange::new(
+            Duration::from_secs(32 + 20),
+            board::ModuleState::Functional,
+            [4, 1],
+        ),
+    ],
 });

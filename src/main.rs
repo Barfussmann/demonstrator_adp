@@ -65,56 +65,9 @@ async fn main_inner() {
         .unwrap(),
         X_NUM_MODULES * Y_NUM_MODULES * (7 + 6),
     );
-
-    let steps_bottom_from_top = ProductPlan::new(
-        vec![
-            Step::new(1.0, [0, 1], vec![[0, 1]], true),
-            Step::new(1.0, [1, 0], vec![[0, 0]], true),
-            Step::new(2.5, [2, 1], vec![[1, 1]], false),
-            Step::new(1.0, [1, 3], vec![[2, 2], [1, 2]], true),
-            Step::new(5.0, [2, 3], vec![[1, 2], [2, 2]], false),
-            Step::new(5.0, [3, 3], vec![[2, 2], [3, 2]], false),
-            Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
-            Step::new(1.0, [5, 2], vec![[5, 3]], false),
-        ],
-        constants::RED,
-    );
     board.set_storage(STEPS_TOP_NORMAL.clone());
     board.set_storage(STEPS_BOTTOM_NORMAL.clone());
-
-    let normal = Scenario::starting_scenario();
-    let bottom_supply_difficulty = Scenario {
-        name: "Supplyer ausfall oben".to_string(),
-        starting_steps: vec![STEPS_TOP_NORMAL.clone(), STEPS_BOTTOM_NORMAL.clone()],
-        disturbance_steps: vec![STEPS_TOP_NORMAL.clone(), steps_bottom_from_top.clone()],
-        pre_duration: Duration::from_secs(10),
-        starting_time: board.time_manager.now(),
-        disturbance_duration: Duration::from_secs(56),
-        state: board::ScenarioState::Start,
-        machine_state_changes: vec![],
-    };
-    let maintenance = Scenario {
-        name: "Wartung Oben".to_string(),
-        starting_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
-        disturbance_steps: vec![STEPS_TOP_MAINTAINANCE.clone(), STEPS_BOTTOM_NORMAL.clone()],
-        pre_duration: Duration::from_secs(25),
-        starting_time: board.time_manager.now(),
-        disturbance_duration: Duration::from_secs(20),
-        state: board::ScenarioState::Start,
-        machine_state_changes: vec![
-            MachineStateChange::new(
-                Duration::from_secs(32),
-                board::ModuleState::Maintaining,
-                [4, 1],
-            ),
-            MachineStateChange::new(
-                Duration::from_secs(32 + 20),
-                board::ModuleState::Functional,
-                [4, 1],
-            ),
-        ],
-    };
-    board.set_scenario(bottom_supply_difficulty.clone());
+    board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
 
     loop {
         let start_time = Instant::now();
@@ -146,9 +99,9 @@ async fn main_inner() {
         {
             for key in get_keys_pressed() {
                 match key {
-                    KeyCode::Key7 => board.set_scenario(normal.clone()),
-                    KeyCode::Key8 => board.set_scenario(bottom_supply_difficulty.clone()),
-                    KeyCode::Key9 => board.set_scenario(maintenance.clone()),
+                    KeyCode::Key7 => board.set_scenario(Scenario::starting_scenario().clone()),
+                    KeyCode::Key8 => board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone()),
+                    KeyCode::Key9 => board.set_scenario(MAINTENANCE.clone()),
                     _ => {}
                 }
             }
