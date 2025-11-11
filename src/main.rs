@@ -1,5 +1,3 @@
-#![allow(clippy::needless_range_loop, unused)]
-
 use std::{
     cell::LazyCell,
     collections::VecDeque,
@@ -7,24 +5,31 @@ use std::{
     task::{Context, Poll, Waker},
     time::{Duration, Instant},
 };
+use std::{
+    io::{BufRead, Write},
+    thread::sleep,
+};
+
+use serialport::{SerialPortInfo, SerialPortType};
 
 #[cfg(not(target_arch = "x86_64"))]
 use blinkt::{Blinkt, BlinktSpi};
-use board::Board;
 #[cfg(target_arch = "x86_64")]
 use board::color_to_vec3;
 use constants::*;
 use ligth_point::LigthPoint;
 #[cfg(target_arch = "x86_64")]
 use macroquad::prelude::*;
-use product::{Product, Step};
-use time_manager::TimeManager;
 
 use crate::{
-    board::{MachineStateChange, Scenario},
+    board::{Board, MachineStateChange, Scenario},
     product::ProductPlan,
+    product::{Product, Step},
+    time_manager::TimeManager,
     time_manager::VirtualInstant,
 };
+
+const BAUD_RATE: u32 = 115_200;
 
 mod board;
 mod constants;
@@ -33,7 +38,6 @@ mod module;
 mod product;
 mod time_manager;
 
-// Material Fluesse Programmieren
 #[cfg(target_arch = "x86_64")]
 #[macroquad::main("Board")]
 async fn main() {
@@ -69,7 +73,85 @@ async fn main_inner() {
     board.set_storage(STEPS_BOTTOM_NORMAL.clone());
     board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
 
+    let (speed_button, scenario_button) = init();
+
+    let (Some(speed_button), Some(scenario_button)) = (speed_button, scenario_button) else {
+        panic!("No speed and scenario button found");
+    };
+
+    let mut speed_button_port = serialport::new(speed_button.port_name, BAUD_RATE)
+        .open()
+        .unwrap();
+    let mut scenario_button_port = serialport::new(scenario_button.port_name, BAUD_RATE)
+        .open()
+        .unwrap();
+
+    let mut speed_button_reader =
+        std::io::BufReader::new(speed_button_port.try_clone().unwrap()).lines();
+    let mut scenario_button_reader =
+        std::io::BufReader::new(scenario_button_port.try_clone().unwrap()).lines();
+
     loop {
+        if let Some(Ok(speed)) = speed_button_reader.next() {
+            println!("Speed: {}", speed);
+        }
+        if let Some(Ok(scenario)) = scenario_button_reader.next() {
+            println!("Scenario: {}", scenario);
+            match scenario
+                .to_ascii_lowercase()
+                .trim()
+                .split_ascii_whitespace()
+                .collect::<Vec<&str>>()
+                .as_slice()
+            {
+                ["boot"] => {
+                    speed_button_port.write_all(b"boot\n").unwrap();
+                }
+                ["scenario", scenario_num] => {
+                    let message = format!("scenario {}\n", scenario_num);
+
+                    speed_button_port.write_all(message.as_bytes()).unwrap();
+
+                    match *scenario_num {
+                        "0" => {
+                            board.set_scenario(Scenario::starting_scenario().clone());
+                        }
+                        "1" => {
+                            board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
+                        }
+                        "2" => {
+                            board.set_scenario(MAINTENANCE.clone());
+                        }
+                        _ => {
+                            println!("Invalid scenario number");
+                        }
+                    }
+                }
+                ["start"] => {
+                    speed_button_port.write_all(b"start\n").unwrap();
+                    for i in 0..11 {
+                        let percentage = i as f32 * 0.1;
+                        let message = format!("progress {}\n", percentage);
+                        speed_button_port.write_all(message.as_bytes()).unwrap();
+                        sleep(Duration::from_millis(500));
+                    }
+                }
+                ["resume"] => {
+                    speed_button_port.write_all(b"resume\n").unwrap();
+                    board.time_manager.resume();
+                }
+                ["pause"] => {
+                    speed_button_port.write_all(b"pause\n").unwrap();
+                    board.time_manager.pause();
+                }
+                ["stop"] => {
+                    speed_button_port.write_all(b"stop\n").unwrap();
+                    board.set_scenario(Scenario::starting_scenario());
+                }
+                _ => {}
+            }
+        }
+
         let start_time = Instant::now();
 
         #[cfg(target_arch = "x86_64")]
@@ -115,6 +197,55 @@ async fn main_inner() {
         std::thread::sleep(
             (start_time + Duration::from_secs(1) / 100).saturating_duration_since(Instant::now()),
         );
+    }
+}
+
+fn init() -> (Option<SerialPortInfo>, Option<SerialPortInfo>) {
+    let ports = serialport::available_ports().expect("no ports found");
+    let mut speed_button = None;
+    let mut scenario_button = None;
+    for port in ports {
+        let SerialPortType::UsbPort(ref usb_port_info) = port.port_type else {
+            // Skip non-USB ports
+            continue;
+        };
+        if usb_port_info.vid != 0x303A || usb_port_info.pid != 0x1001 {
+            // Skip specific USB device
+            continue;
+        }
+
+        println!("Found usb: {:?}", usb_port_info.product);
+        // read_serial_to_std_out(port.clone());
+
+        if usb_port_info.product == Some("Serielles USB-Gerät (COM5)".to_string()) {
+            scenario_button = Some(port);
+        } else {
+            speed_button = Some(port)
+        }
+        // if usb_port_info.serial_number == Some("80:65:99:BD:21:5C".to_string()) {
+        //     println!("Found usb: {:?}", port);
+        //     speed_button = Some(port);
+        // } else if usb_port_info.serial_number == Some("80:65:99:BD:1E:14".to_string()) {
+        //     println!("Found usb: {:?}", port);
+        //     scenario_button = Some(port);
+        // }
+    }
+    (speed_button, scenario_button)
+}
+
+fn read_serial_to_std_out(serial_port_info: SerialPortInfo) {
+    let port = serialport::new(serial_port_info.port_name, BAUD_RATE)
+        // .
+        .open()
+        .expect("Failed to open serial_port");
+
+    for line in std::io::BufReader::new(port).lines() {
+        if line.is_err() {
+            // println!("Error reading line: {:?}", line.err());
+            continue;
+        }
+        println!("{}", line.unwrap());
+        std::io::stdout().flush().unwrap();
     }
 }
 
