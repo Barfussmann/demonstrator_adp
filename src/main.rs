@@ -73,84 +73,84 @@ async fn main_inner() {
     board.set_storage(STEPS_BOTTOM_NORMAL.clone());
     board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
 
-    let (speed_button, scenario_button) = init();
+    // let (speed_button, scenario_button) = init();
 
-    let (Some(speed_button), Some(scenario_button)) = (speed_button, scenario_button) else {
-        panic!("No speed and scenario button found");
-    };
+    // let (Some(speed_button), Some(scenario_button)) = (speed_button, scenario_button) else {
+    //     panic!("No speed and scenario button found");
+    // };
 
-    let mut speed_button_port = serialport::new(speed_button.port_name, BAUD_RATE)
-        .open()
-        .unwrap();
-    let mut scenario_button_port = serialport::new(scenario_button.port_name, BAUD_RATE)
-        .open()
-        .unwrap();
+    // let mut speed_button_port = serialport::new(speed_button.port_name, BAUD_RATE)
+    //     .open()
+    //     .unwrap();
+    // let mut scenario_button_port = serialport::new(scenario_button.port_name, BAUD_RATE)
+    //     .open()
+    //     .unwrap();
 
-    let mut speed_button_reader =
-        std::io::BufReader::new(speed_button_port.try_clone().unwrap()).lines();
-    let mut scenario_button_reader =
-        std::io::BufReader::new(scenario_button_port.try_clone().unwrap()).lines();
+    // let mut speed_button_reader =
+    //     std::io::BufReader::new(speed_button_port.try_clone().unwrap()).lines();
+    // let mut scenario_button_reader =
+    //     std::io::BufReader::new(scenario_button_port.try_clone().unwrap()).lines();
 
     loop {
-        if let Some(Ok(speed)) = speed_button_reader.next() {
-            println!("Speed: {}", speed);
-        }
-        if let Some(Ok(scenario)) = scenario_button_reader.next() {
-            println!("Scenario: {}", scenario);
-            match scenario
-                .to_ascii_lowercase()
-                .trim()
-                .split_ascii_whitespace()
-                .collect::<Vec<&str>>()
-                .as_slice()
-            {
-                ["boot"] => {
-                    speed_button_port.write_all(b"boot\n").unwrap();
-                }
-                ["scenario", scenario_num] => {
-                    let message = format!("scenario {}\n", scenario_num);
+        // if let Some(Ok(speed)) = speed_button_reader.next() {
+        //     println!("Speed: {}", speed);
+        // }
+        // if let Some(Ok(scenario)) = scenario_button_reader.next() {
+        //     println!("Scenario: {}", scenario);
+        //     match scenario
+        //         .to_ascii_lowercase()
+        //         .trim()
+        //         .split_ascii_whitespace()
+        //         .collect::<Vec<&str>>()
+        //         .as_slice()
+        //     {
+        //         ["boot"] => {
+        //             speed_button_port.write_all(b"boot\n").unwrap();
+        //         }
+        //         ["scenario", scenario_num] => {
+        //             let message = format!("scenario {}\n", scenario_num);
 
-                    speed_button_port.write_all(message.as_bytes()).unwrap();
+        //             speed_button_port.write_all(message.as_bytes()).unwrap();
 
-                    match *scenario_num {
-                        "0" => {
-                            board.set_scenario(Scenario::starting_scenario().clone());
-                        }
-                        "1" => {
-                            board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
-                        }
-                        "2" => {
-                            board.set_scenario(MAINTENANCE.clone());
-                        }
-                        _ => {
-                            println!("Invalid scenario number");
-                        }
-                    }
-                }
-                ["start"] => {
-                    speed_button_port.write_all(b"start\n").unwrap();
-                    for i in 0..11 {
-                        let percentage = i as f32 * 0.1;
-                        let message = format!("progress {}\n", percentage);
-                        speed_button_port.write_all(message.as_bytes()).unwrap();
-                        sleep(Duration::from_millis(500));
-                    }
-                }
-                ["resume"] => {
-                    speed_button_port.write_all(b"resume\n").unwrap();
-                    board.time_manager.resume();
-                }
-                ["pause"] => {
-                    speed_button_port.write_all(b"pause\n").unwrap();
-                    board.time_manager.pause();
-                }
-                ["stop"] => {
-                    speed_button_port.write_all(b"stop\n").unwrap();
-                    board.set_scenario(Scenario::starting_scenario());
-                }
-                _ => {}
-            }
-        }
+        //             match *scenario_num {
+        //                 "0" => {
+        //                     board.set_scenario(Scenario::starting_scenario().clone());
+        //                 }
+        //                 "1" => {
+        //                     board.set_scenario(BOTTOM_SUPPLY_DIFFICULTY.clone());
+        //                 }
+        //                 "2" => {
+        //                     board.set_scenario(MAINTENANCE.clone());
+        //                 }
+        //                 _ => {
+        //                     println!("Invalid scenario number");
+        //                 }
+        //             }
+        //         }
+        //         ["start"] => {
+        //             speed_button_port.write_all(b"start\n").unwrap();
+        //             for i in 0..11 {
+        //                 let percentage = i as f32 * 0.1;
+        //                 let message = format!("progress {}\n", percentage);
+        //                 speed_button_port.write_all(message.as_bytes()).unwrap();
+        //                 sleep(Duration::from_millis(500));
+        //             }
+        //         }
+        //         ["resume"] => {
+        //             speed_button_port.write_all(b"resume\n").unwrap();
+        //             board.time_manager.resume();
+        //         }
+        //         ["pause"] => {
+        //             speed_button_port.write_all(b"pause\n").unwrap();
+        //             board.time_manager.pause();
+        //         }
+        //         ["stop"] => {
+        //             speed_button_port.write_all(b"stop\n").unwrap();
+        //             board.set_scenario(Scenario::starting_scenario());
+        //         }
+        //         _ => {}
+        //     }
+        // }
 
         let start_time = Instant::now();
 
