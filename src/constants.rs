@@ -14,7 +14,7 @@ pub const DRAW_SCALE: f32 = 1.0;
 pub const PIXEL_PER_MODULE: f32 = DRAW_SCALE * 100.;
 pub const LEDS_PER_DIR: usize = 7;
 pub const STEP_SIZE: f32 = 3.;
-pub const COLOR_RADIUS: f32 = 0.2;
+pub const COLOR_RADIUS: f32 = 0.4;
 pub const COLOR_STRENGTH: f32 = 1.0;
 pub const EPSILON: f32 = 1e-4;
 
