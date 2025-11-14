@@ -40,7 +40,7 @@ pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
             Step::new(5.0, [5, 0], vec![[4, 0]], false),
             Step::new(2.5, [5, 2], vec![[5, 1]], false),
         ],
-        GREEN,
+        BLUE,
     )
 });
 pub static STEPS_TOP_MAINTAINANCE: LazyLock<ProductPlan> = LazyLock::new(|| {
@@ -55,7 +55,7 @@ pub static STEPS_TOP_MAINTAINANCE: LazyLock<ProductPlan> = LazyLock::new(|| {
             Step::new(5.0, [5, 0], vec![[4, 0]], false),
             Step::new(2.5, [5, 2], vec![[5, 1]], false),
         ],
-        GREEN,
+        BLUE,
     )
 });
 
@@ -69,7 +69,7 @@ pub static STEPS_BOTTOM_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
             Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
             Step::new(1.0, [5, 2], vec![[5, 3]], false),
         ],
-        RED,
+        MAGENTA,
     )
 });
 
@@ -85,7 +85,7 @@ pub static STEPS_BOTTOM_FROM_TOP: LazyLock<ProductPlan> = LazyLock::new(|| {
             Step::new(1.0, [4, 3], vec![[3, 2], [4, 2]], true),
             Step::new(1.0, [5, 2], vec![[5, 3]], false),
         ],
-        RED,
+        MAGENTA,
     )
 });
 
