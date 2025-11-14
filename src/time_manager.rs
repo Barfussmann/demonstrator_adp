@@ -59,6 +59,7 @@ struct TimeManagerInner {
     last_virtual_delta: Duration,
     /// Speed multiplier (1.0 = normal speed, 2.0 = double speed, 0.5 = half speed)
     speed_multiplier: f64,
+    last_speed_multiplier: f64,
     /// Last update time for delta calculations
     last_update: Instant,
 }
@@ -73,6 +74,7 @@ impl TimeManager {
                 virtual_instance: VirtualInstant::zero(),
                 last_virtual_delta: Duration::ZERO,
                 speed_multiplier: 1.0,
+                last_speed_multiplier: 1.0,
                 last_update: now,
             })),
         }
@@ -137,6 +139,17 @@ impl TimeManager {
         let minutes = (total_secs / 60.0) as u32;
         let seconds = total_secs % 60.0;
         format!("{minutes:02}:{seconds:06.3}")
+    }
+
+    pub fn pause(&mut self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.last_speed_multiplier = inner.speed_multiplier;
+        inner.speed_multiplier = 0.0;
+    }
+
+    pub fn resume(&mut self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.speed_multiplier = inner.last_speed_multiplier;
     }
 }
 
