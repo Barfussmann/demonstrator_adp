@@ -45,9 +45,6 @@ impl Module {
         let mut pixel_y = self.brigthness_y.to_vec();
         let mut pixel_x = self.brigthness_x[0..3].to_vec();
         pixel_x.extend_from_slice(&self.brigthness_x[4..7]);
-        // let mut pixel_y = self.brigthness_y[0..3].to_vec();
-        // pixel_y.extend_from_slice(&self.brigthness_y[4..7]);
-        // let mut pixel_x = self.brigthness_x.to_vec();
         if flip {
             pixel_y.reverse();
             pixel_x.reverse();

@@ -171,7 +171,7 @@ async fn main_inner() {
                 (color.red * 255.0) as u8,
                 (color.green * 255.0) as u8,
                 (color.blue * 255.0) as u8,
-                0.1,
+                1.0,
             );
         }
         #[cfg(not(target_arch = "x86_64"))]
