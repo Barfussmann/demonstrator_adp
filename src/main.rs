@@ -223,10 +223,10 @@ fn init() -> (Option<SerialPortInfo>, Option<SerialPortInfo>) {
         // } else {
         //     speed_button = Some(port)
         // }
-        if usb_port_info.serial_number == Some("80:65:99:BD:21:5C".to_string()) {
+        if usb_port_info.serial_number == Some("80:65:99:BD:16:0C".to_string()) {
             println!("Found usb: {:?}", port);
             speed_button = Some(port);
-        } else if usb_port_info.serial_number == Some("80:65:99:BD:1E:14".to_string()) {
+        } else if usb_port_info.serial_number == Some("80:65:99:BD:1D:B0".to_string()) {
             println!("Found usb: {:?}", port);
             scenario_button = Some(port);
         }
