@@ -214,21 +214,22 @@ fn init() -> (Option<SerialPortInfo>, Option<SerialPortInfo>) {
             continue;
         }
 
-        println!("Found usb: {:?}", usb_port_info.product);
+        println!("Found usb: {:?}", usb_port_info);
+        // println!("Found usb: {:?}", usb_port_info.product);
         // read_serial_to_std_out(port.clone());
 
-        if usb_port_info.product == Some("Serielles USB-Gerät (COM5)".to_string()) {
-            scenario_button = Some(port);
-        } else {
-            speed_button = Some(port)
-        }
-        // if usb_port_info.serial_number == Some("80:65:99:BD:21:5C".to_string()) {
-        //     println!("Found usb: {:?}", port);
-        //     speed_button = Some(port);
-        // } else if usb_port_info.serial_number == Some("80:65:99:BD:1E:14".to_string()) {
-        //     println!("Found usb: {:?}", port);
+        // if usb_port_info.product == Some("Serielles USB-Gerät (COM5)".to_string()) {
         //     scenario_button = Some(port);
+        // } else {
+        //     speed_button = Some(port)
         // }
+        if usb_port_info.serial_number == Some("80:65:99:BD:21:5C".to_string()) {
+            println!("Found usb: {:?}", port);
+            speed_button = Some(port);
+        } else if usb_port_info.serial_number == Some("80:65:99:BD:1E:14".to_string()) {
+            println!("Found usb: {:?}", port);
+            scenario_button = Some(port);
+        }
     }
     (speed_button, scenario_button)
 }
