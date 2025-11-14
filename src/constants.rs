@@ -25,7 +25,7 @@ pub const LED_OFF_COLOR: Srgb = Srgb::new(0.0, 0.0, 0.0);
 
 pub const GREEN: Srgb = Srgb::new(0.00, 1.0, 0.19);
 pub const RED: Srgb = Srgb::new(1.0, 0.0, 0.0);
-pub const BLUE: Srgb = Srgb::new(0.0, 0.3, 1.0);
+pub const BLUE: Srgb = Srgb::new(0.0, 0.5, 1.0);
 pub const MAGENTA: Srgb = Srgb::new(1.0, 0.00, 1.0);
 
 pub static STEPS_TOP_NORMAL: LazyLock<ProductPlan> = LazyLock::new(|| {
