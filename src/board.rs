@@ -314,7 +314,7 @@ impl Board {
         for (led_pos, led) in self.iter_mut_leds() {
             let diff = [led_pos[0] - pos[0], led_pos[1] - pos[1]];
             let distance = diff[0].hypot(diff[1]);
-            let coloring_strength = 1. - distance / COLOR_RADIUS;
+            let coloring_strength = (1. - distance / COLOR_RADIUS) * COLOR_STRENGTH;
 
             if coloring_strength >= 0. {
                 *led += color * coloring_strength;
