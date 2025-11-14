@@ -225,10 +225,10 @@ fn init() -> (Option<SerialPortInfo>, Option<SerialPortInfo>) {
         // }
         if usb_port_info.serial_number == Some("80:65:99:BD:16:0C".to_string()) {
             println!("Found usb: {:?}", port);
-            speed_button = Some(port);
+            scenario_button = Some(port);
         } else if usb_port_info.serial_number == Some("80:65:99:BD:1D:B0".to_string()) {
             println!("Found usb: {:?}", port);
-            scenario_button = Some(port);
+            speed_button = Some(port);
         }
     }
     (speed_button, scenario_button)
