@@ -86,6 +86,7 @@ async fn main_inner() {
         board.reset(LED_OFF_COLOR);
 
         board.update();
+        board.draw_modules();
 
         #[cfg(not(target_arch = "x86_64"))]
         for (pixel, mut color) in blinkt.iter_mut().zip(board.colors()) {
@@ -109,7 +110,7 @@ async fn main_inner() {
                     _ => {}
                 }
             }
-            board.draw();
+            board.draw_on_screen();
             // Draw speed indicator
             draw_speed_indicator(&board.time_manager, vec2(10.0, 10.0));
             next_frame().await

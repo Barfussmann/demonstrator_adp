@@ -102,6 +102,7 @@ impl Product {
     pub fn next(&mut self, board: &mut Board) -> Option<[f32; 2]> {
         match &self.state {
             State::Waiting { until, next_step } => {
+                board[self.ligth_point.current_i32x2()].in_storage += 1;
                 if board.time_manager.now() >= *until {
                     self.state = State::WaitingForFreeMaschine {
                         next_step: next_step.clone(),
@@ -111,6 +112,7 @@ impl Product {
             }
             State::WaitingForFreeMaschine { next_step } => {
                 if !board[next_step.maschine_pos].can_receiv_product() {
+                    board[self.ligth_point.current_i32x2()].in_storage += 1;
                     return Some(self.waiting_in_storage());
                 };
                 board[self.ligth_point.current_i32x2()].in_production -= 1;

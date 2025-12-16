@@ -24,9 +24,10 @@ pub enum ModuleState {
 pub struct Module {
     pub pos: [i32; 2],
     pub in_production: u32,
+    pub in_storage: u32,
     pub max_production: u32,
-    pub brigthness_x: [Srgb; LEDS_PER_DIR],
-    pub brigthness_y: [Srgb; LEDS_PER_DIR],
+    pub brightness_x: [Srgb; LEDS_PER_DIR],
+    pub brightness_y: [Srgb; LEDS_PER_DIR],
     pub state: ModuleState,
 }
 
@@ -35,16 +36,17 @@ impl Module {
         Self {
             pos,
             in_production: 0,
+            in_storage: 0,
             max_production: 1,
-            brigthness_x: [color; LEDS_PER_DIR],
-            brigthness_y: [color; LEDS_PER_DIR],
+            brightness_x: [color; LEDS_PER_DIR],
+            brightness_y: [color; LEDS_PER_DIR],
             state: ModuleState::Functional,
         }
     }
     pub fn colors(&self, flip: bool) -> Vec<Srgb> {
-        let mut pixel_y = self.brigthness_y.to_vec();
-        let mut pixel_x = self.brigthness_x[0..3].to_vec();
-        pixel_x.extend_from_slice(&self.brigthness_x[4..7]);
+        let mut pixel_y = self.brightness_y.to_vec();
+        let mut pixel_x = self.brightness_x[0..3].to_vec();
+        pixel_x.extend_from_slice(&self.brightness_x[4..7]);
         if flip {
             pixel_y.reverse();
             pixel_x.reverse();
@@ -63,7 +65,7 @@ impl Module {
         PIXEL_PER_MODULE / 2.
     }
     #[cfg(target_arch = "x86_64")]
-    pub fn draw(&self) {
+    pub fn draw_on_screen(&self) {
         let center = self.center();
 
         let text = format!("{}", self.in_production.clamp(0, 100));
@@ -72,12 +74,12 @@ impl Module {
         draw_led_strip(
             center - vec2(self.half_width(), 0.),
             center + vec2(self.half_width(), 0.),
-            self.brigthness_x,
+            self.brightness_x,
         );
         draw_led_strip(
             center - vec2(0., self.half_width()),
             center + vec2(0., self.half_width()),
-            self.brigthness_y,
+            self.brightness_y,
         );
     }
     pub fn reset(&mut self) {
@@ -85,8 +87,8 @@ impl Module {
         self.state = ModuleState::Functional;
     }
     pub fn set_all_colors(&mut self, color: Srgb) {
-        self.brigthness_x = [color; LEDS_PER_DIR];
-        self.brigthness_y = [color; LEDS_PER_DIR];
+        self.brightness_x = [color; LEDS_PER_DIR];
+        self.brightness_y = [color; LEDS_PER_DIR];
     }
 
     pub fn iter_mut_leds(&mut self) -> impl Iterator<Item = ([f32; 2], &mut Srgb)> {
@@ -94,7 +96,7 @@ impl Module {
         let side_x = [corner[0], corner[1] + 0.5];
         let side_y = [corner[0] + 0.5, corner[1]];
 
-        let x_leds = (self.brigthness_x)
+        let x_leds = (self.brightness_x)
             .iter_mut()
             .enumerate()
             .map(move |(i, color)| {
@@ -102,7 +104,7 @@ impl Module {
                 let led_pos = [side_x[0] + offset, side_x[1]];
                 (led_pos, color)
             });
-        let y_leds = (self.brigthness_y)
+        let y_leds = (self.brightness_y)
             .iter_mut()
             .enumerate()
             .map(move |(i, color)| {
@@ -116,6 +118,53 @@ impl Module {
 
     pub fn can_receiv_product(&self) -> bool {
         self.in_production < self.max_production && matches!(self.state, ModuleState::Functional)
+    }
+
+    pub fn draw(&mut self) {
+        if self.is_storage() {
+            self.draw_as_storage();
+            return;
+        }
+
+        let color = match self.state {
+            ModuleState::Functional => return,
+            ModuleState::Maintaining => YELLOW,
+            ModuleState::Broken => RED,
+        };
+
+        self.brightness_x[1..LEDS_PER_DIR - 1].fill(color);
+        self.brightness_y[1..LEDS_PER_DIR - 1].fill(color);
+    }
+    fn is_storage(&self) -> bool {
+        self.max_production > 1
+    }
+    pub fn draw_as_storage(&mut self) {
+        let middle = LEDS_PER_DIR / 2;
+
+        let middle_color = self.brightness_x[middle];
+
+        for in_storage in 0..=self.in_storage {
+            match in_storage {
+                0 => {}
+                1 => {} // middle is already lit
+                2 => {
+                    self.brightness_x[middle - 1] = middle_color;
+                }
+                3 => {
+                    self.brightness_y[middle - 1] = middle_color;
+                }
+                4 => {
+                    self.brightness_x[middle + 1] = middle_color;
+                }
+                5 => {
+                    self.brightness_y[middle + 1] = middle_color;
+                }
+                _ => {
+                    unreachable!("There are more in production then assumed")
+                }
+            }
+        }
+        self.in_storage = 0;
     }
 }
 #[cfg(target_arch = "x86_64")]
@@ -297,8 +346,13 @@ impl Board {
         );
     }
     #[cfg(target_arch = "x86_64")]
-    pub fn draw(&self) {
+    pub fn draw_on_screen(&self) {
         for module in self.modules.as_flattened() {
+            module.draw_on_screen();
+        }
+    }
+    pub fn draw_modules(&mut self) {
+        for module in self.modules.as_flattened_mut() {
             module.draw();
         }
     }
@@ -350,24 +404,6 @@ impl Board {
             self.products.push(product);
         }
 
-        // self.products.extend(new_products);
-        // let is_bottom_full = self[bottom_spawning_pos].is_full();
-        // if !self[top_spawning_pos].is_full() {
-        //     self.products.push(Product::new(
-        //         [0.00, 0.89, 0.19],
-        //         current_steps[0].clone(),
-        //         &self.time_manager,
-        //     ));
-        //     self[top_spawning_pos].in_production += 1;
-        // }
-        // if !is_bottom_full {
-        //     self.products.push(Product::new(
-        //         [0.90, 0.16, 0.22],
-        //         current_steps[1].clone(),
-        //         &self.time_manager,
-        //     ));
-        //     self[bottom_spawning_pos].in_production += 1;
-        // }
         let mut products = std::mem::take(&mut self.products);
         products.retain_mut(|product: &mut Product| {
             let Some(light_point_pos) = product.next(self) else {
